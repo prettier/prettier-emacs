@@ -16,8 +16,8 @@ First require the package:
 Then you can hook to your favorite javascript mode:
 
 ```elisp
-(add-hook 'js2-mode-hook 'prettier-mode)
-(add-hook 'web-mode-hook 'prettier-mode)
+(add-hook 'js2-mode-hook 'prettier-js-mode)
+(add-hook 'web-mode-hook 'prettier-js-mode)
 ...
 ```
 
