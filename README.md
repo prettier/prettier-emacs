@@ -34,8 +34,7 @@ To adjust the CLI args used for the prettier command, you can customize the `pre
 
 ### Usage with web-mode
 
-Web-mode is a popular mode for editing .js and .jsx files, but it is used to edit other template files. If you want to hook to
-web-mode only for .js and .jsx files you can define a helper function like this:
+Web-mode is a popular mode for editing .js and .jsx files, but it is used to edit other template files too. If you want to hook prettier-js to web-mode for .js and .jsx files only, you can define a helper function like this:
 
 ```elisp
 (defun enable-minor-mode (my-pair)
