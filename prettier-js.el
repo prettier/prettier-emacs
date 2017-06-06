@@ -33,7 +33,7 @@
 
 ;; Author: James Long and contributors
 ;; Created: 10 January 2017
-;; Url: https://github.com/prettier/prettier/blob/master/editors/emacs/prettier-js.el
+;; Url: https://github.com/prettier/prettier-emacs
 ;; Keywords: convenience wp edit js
 
 ;; This file is not part of GNU Emacs.
