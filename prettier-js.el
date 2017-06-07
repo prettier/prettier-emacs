@@ -84,7 +84,7 @@ a `before-save-hook'."
   (goto-char (point-min))
     (forward-line (1- line)))
 
-(defun prettier-js--apply-rcs-patch (patch-buffer)
+(defun prettier-js--apply-rcs-patch (patch-buffer &optional start end)
   "Apply an RCS-formatted diff from PATCH-BUFFER to the current buffer."
   (let ((target-buffer (current-buffer))
         ;; Relative offset between buffer line numbers and line numbers
@@ -97,7 +97,8 @@ a `before-save-hook'."
         ;; Appending lines decrements the offset (possibly making it
         ;; negative), deleting lines increments it. This order
         ;; simplifies the forward-line invocations.
-        (line-offset 0))
+        (line-offset (if start (* (- (line-number-at-pos start) 1) -1) 0)))
+
     (save-excursion
       (with-current-buffer patch-buffer
         (goto-char (point-min))
@@ -152,10 +153,12 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
-(defun prettier-js ()
+(defun prettier-js--prettify (&optional start end)
    "Format the current buffer according to the prettier tool."
    (interactive)
    (let* ((ext (file-name-extension buffer-file-name t))
+          (start-point (or start (point-min)))
+          (end-point (or end (point-max)))
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
@@ -174,7 +177,7 @@ a `before-save-hook'."
      (unwind-protect
          (save-restriction
            (widen)
-           (write-region nil nil bufferfile)
+           (write-region start end bufferfile)
            (if errbuf
                (with-current-buffer errbuf
                  (setq buffer-read-only nil)
@@ -185,9 +188,9 @@ a `before-save-hook'."
                              prettier-js-command nil (list (list :file outputfile) errorfile)
                              nil (append (append prettier-js-args width-args) (list bufferfile))))
                (progn
-                 (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "-"
+                 (call-process-region start-point end-point "diff" nil patchbuf nil "-n" "-"
                                       outputfile)
-                 (prettier-js--apply-rcs-patch patchbuf)
+                 (prettier-js--apply-rcs-patch patchbuf start end)
                  (message "Applied prettier with args `%s'" prettier-js-args)
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
@@ -199,14 +202,22 @@ a `before-save-hook'."
      (delete-file bufferfile)
      (delete-file outputfile)))
 
+(defun prettier-js-prettify ()
+  (interactive)
+  (prettier-js--prettify))
+
+(defun prettier-js-prettify-region ()
+  (interactive)
+  (prettier-js--prettify (region-beginning) (region-end)))
+
 ;;;###autoload
 (define-minor-mode prettier-js-mode
   "Runs prettier on file save when this mode is turned on"
   :lighter " prettier"
   :global nil
   (if prettier-js-mode
-      (add-hook 'before-save-hook 'prettier-js nil 'local)
-    (remove-hook 'before-save-hook 'prettier-js 'local)))
+      (add-hook 'before-save-hook 'prettier-js-prettify nil 'local)
+    (remove-hook 'before-save-hook 'prettier-js-prettify 'local)))
 
 (provide 'prettier-js)
 ;;; prettier-js.el ends here
