@@ -193,11 +193,11 @@ a `before-save-hook'."
              (message "Could not apply prettier")
              (if errbuf
                  (prettier-js--process-errors (buffer-file-name) bufferfile errorfile errbuf))
-             )))
-     (kill-buffer patchbuf)
-     (delete-file errorfile)
-     (delete-file bufferfile)
-     (delete-file outputfile)))
+             ))
+       (kill-buffer patchbuf)
+       (delete-file errorfile)
+       (delete-file bufferfile)
+       (delete-file outputfile))))
 
 ;;;###autoload
 (define-minor-mode prettier-js-mode
