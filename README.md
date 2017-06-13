@@ -1,4 +1,5 @@
 # Prettier-js for Emacs
+[![MELPA](http://melpa.org/packages/prettier-js-badge.svg)](http://melpa.org/#/prettier-js)
 
 prettier-js is a function that formats the current buffer using [prettier](https://github.com/prettier/prettier). The
 package also exports a minor mode that applies `(prettier-js)` on save.
