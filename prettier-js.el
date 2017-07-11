@@ -183,7 +183,7 @@ a `before-save-hook'."
              (erase-buffer))
            (if (zerop (apply 'call-process
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append (append prettier-js-args width-args (list "--stdin")) (list buffer-file-name))))
+                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
                (progn
                  (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "-"
                                       outputfile)
