@@ -56,7 +56,7 @@
 
 (defcustom prettier-js-args '()
   "List of args to send to prettier command."
-  :type 'list
+  :type '(repeat string)
   :group 'prettier-js)
 
 (defcustom prettier-js-show-errors 'buffer
