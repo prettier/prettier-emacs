@@ -185,7 +185,7 @@ a `before-save-hook'."
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
                              nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
                (progn
-                 (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "-"
+                 (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
                  (prettier-js--apply-rcs-patch patchbuf)
                  (message "Applied prettier with args `%s'" prettier-js-args)
