@@ -202,7 +202,7 @@ a `before-save-hook'."
 ;;;###autoload
 (define-minor-mode prettier-js-mode
   "Runs prettier on file save when this mode is turned on"
-  :lighter " prettier"
+  :lighter " Prettier"
   :global nil
   (if prettier-js-mode
       (add-hook 'before-save-hook 'prettier-js nil 'local)
