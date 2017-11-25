@@ -79,55 +79,7 @@ a `before-save-hook'."
           (const :tag "None" nil))
   :group 'prettier-js)
 
-(defun prettier-js--goto-line (line)
-  "Move cursor to line LINE."
-  (goto-char (point-min))
-    (forward-line (1- line)))
-
-(defun prettier-js--apply-rcs-patch (patch-buffer)
-  "Apply an RCS-formatted diff from PATCH-BUFFER to the current buffer."
-  (let ((target-buffer (current-buffer))
-        ;; Relative offset between buffer line numbers and line numbers
-        ;; in patch.
-        ;;
-        ;; Line numbers in the patch are based on the source file, so
-        ;; we have to keep an offset when making changes to the
-        ;; buffer.
-        ;;
-        ;; Appending lines decrements the offset (possibly making it
-        ;; negative), deleting lines increments it. This order
-        ;; simplifies the forward-line invocations.
-        (line-offset 0))
-    (save-excursion
-      (with-current-buffer patch-buffer
-        (goto-char (point-min))
-        (while (not (eobp))
-          (unless (looking-at "^\\([ad]\\)\\([0-9]+\\) \\([0-9]+\\)")
-            (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch"))
-          (forward-line)
-          (let ((action (match-string 1))
-                (from (string-to-number (match-string 2)))
-                (len  (string-to-number (match-string 3))))
-            (cond
-             ((equal action "a")
-              (let ((start (point)))
-                (forward-line len)
-                (let ((text (buffer-substring start (point))))
-                  (with-current-buffer target-buffer
-                    (setq line-offset (- line-offset len))
-                    (goto-char (point-min))
-                    (forward-line (- from len line-offset))
-                    (insert text)))))
-             ((equal action "d")
-              (with-current-buffer target-buffer
-                (prettier-js--goto-line (- from line-offset))
-                (setq line-offset (+ line-offset len))
-                (kill-whole-line len)
-                (setq kill-ring (cdr kill-ring))))
-             (t
-              (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
-
-(defun prettier-js--process-errors (filename tmpfile errorfile errbuf)
+(defun prettier-js--process-errors (filename errorfile errbuf)
   "Process errors for FILENAME, using a TMPFILE an ERRORFILE and display the output in ERRBUF."
   (with-current-buffer errbuf
     (if (eq prettier-js-show-errors 'echo)
@@ -138,7 +90,7 @@ a `before-save-hook'."
       ;; Convert the prettier stderr to something understood by the compilation mode.
       (goto-char (point-min))
       (insert "prettier errors:\n")
-      (while (search-forward-regexp (regexp-quote tmpfile) nil t)
+      (while (search-forward-regexp "^stdin" nil t)
         (replace-match (file-name-nondirectory filename)))
       (compilation-mode)
       (display-buffer errbuf))))
@@ -156,11 +108,9 @@ a `before-save-hook'."
    "Format the current buffer according to the prettier tool."
    (interactive)
    (let* ((ext (file-name-extension buffer-file-name t))
-          (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
           (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
-          (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
           (coding-system-for-write 'utf-8)
           (width-args
@@ -170,33 +120,28 @@ a `before-save-hook'."
             ((equal prettier-js-width-mode 'fill)
              (list "--print-width" (number-to-string fill-column)))
             (t
-             '()))))
+             '())))
+          (args
+           (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
      (unwind-protect
          (save-restriction
            (widen)
-           (write-region nil nil bufferfile)
            (if errbuf
                (with-current-buffer errbuf
                  (setq buffer-read-only nil)
                  (erase-buffer)))
-           (with-current-buffer patchbuf
-             (erase-buffer))
-           (if (zerop (apply 'call-process
-                             prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
+           (if (zerop (apply 'call-process-region
+                             (point-min) (point-max)
+                             prettier-js-command nil
+                             (list (list :file outputfile) errorfile) nil args))
                (progn
-                 (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
-                                      outputfile)
-                 (prettier-js--apply-rcs-patch patchbuf)
+                 (insert-file-contents outputfile nil nil nil t)
                  (message "Applied prettier with args `%s'" prettier-js-args)
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) bufferfile errorfile errbuf))
-             ))
-       (kill-buffer patchbuf)
+                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))))
        (delete-file errorfile)
-       (delete-file bufferfile)
        (delete-file outputfile))))
 
 ;;;###autoload
