@@ -79,7 +79,7 @@ a `before-save-hook'."
           (const :tag "None" nil))
   :group 'prettier-js)
 
-(defun prettier-js--process-errors (filename tmpfile errorfile errbuf)
+(defun prettier-js--process-errors (filename errorfile errbuf)
   "Process errors for FILENAME, using a TMPFILE an ERRORFILE and display the output in ERRBUF."
   (with-current-buffer errbuf
     (if (eq prettier-js-show-errors 'echo)
@@ -90,7 +90,7 @@ a `before-save-hook'."
       ;; Convert the prettier stderr to something understood by the compilation mode.
       (goto-char (point-min))
       (insert "prettier errors:\n")
-      (while (search-forward-regexp (regexp-quote tmpfile) nil t)
+      (while (search-forward-regexp "^stdin" nil t)
         (replace-match (file-name-nondirectory filename)))
       (compilation-mode)
       (display-buffer errbuf))))
@@ -108,7 +108,6 @@ a `before-save-hook'."
    "Format the current buffer according to the prettier tool."
    (interactive)
    (let* ((ext (file-name-extension buffer-file-name t))
-          (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
           (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
@@ -121,28 +120,28 @@ a `before-save-hook'."
             ((equal prettier-js-width-mode 'fill)
              (list "--print-width" (number-to-string fill-column)))
             (t
-             '()))))
+             '())))
+          (args
+           (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
      (unwind-protect
          (save-restriction
            (widen)
-           (write-region nil nil bufferfile)
            (if errbuf
                (with-current-buffer errbuf
                  (setq buffer-read-only nil)
                  (erase-buffer)))
-           (if (zerop (apply 'call-process
-                             prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
+           (if (zerop (apply 'call-process-region
+                             (point-min) (point-max)
+                             prettier-js-command nil
+                             (list (list :file outputfile) errorfile) nil args))
                (progn
                  (insert-file-contents outputfile nil nil nil t)
                  (message "Applied prettier with args `%s'" prettier-js-args)
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) bufferfile errorfile errbuf))
-             ))
+                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))))
        (delete-file errorfile)
-       (delete-file bufferfile)
        (delete-file outputfile))))
 
 ;;;###autoload
