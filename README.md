@@ -6,6 +6,17 @@ package also exports a minor mode that applies `(prettier-js)` on save.
 
 ## Configuration
 
+### Requirements
+
+Ensure that the prettier program is installed:
+
+```bash
+which prettier
+```
+
+If prettier is not installed already, you can install prettier using `npm -g prettier` or via your package manager.
+
+
 ### Basic configuration
 
 First require the package:
