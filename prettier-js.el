@@ -122,8 +122,9 @@ a `before-save-hook'."
               (with-current-buffer target-buffer
                 (prettier-js--goto-line (- from line-offset))
                 (setq line-offset (+ line-offset len))
-                (kill-whole-line len)
-                (setq kill-ring (cdr kill-ring))))
+                (let ((beg (point)))
+                  (forward-line len)
+                  (delete-region (point) beg))))
              (t
               (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
 
