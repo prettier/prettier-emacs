@@ -14,7 +14,7 @@ Ensure that the prettier program is installed:
 which prettier
 ```
 
-If prettier is not installed already, you can install prettier using `npm -g prettier` or via your package manager.
+If prettier is not installed already, you can install prettier using `npm install -g prettier` or via your package manager.
 
 
 ### Basic configuration
