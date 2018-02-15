@@ -76,3 +76,14 @@ M-x customize-group prettier-js
 * `prettier-js-args` are the args passed to the prettier command
 * `prettier-js-show-errors` customizes where to display the error output (buffer, echo or nil)
 * `prettier-js-width-mode` customizes the width when formatting buffer contents (window, fill or nil)
+
+## Using node_modules/.bin/prettier
+
+If you want to use your project's prettier version you can rely on https://github.com/codesuki/add-node-modules-path
+
+```
+(eval-after-load 'web-mode
+    '(progn
+       (add-hook 'web-mode-hook #'add-node-modules-path)
+       (add-hook 'web-mode-hook #'prettier-js-mode)))
+```
