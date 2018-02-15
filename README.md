@@ -81,7 +81,7 @@ M-x customize-group prettier-js
 
 If you want to use your project's prettier version you can rely on https://github.com/codesuki/add-node-modules-path
 
-```
+```elisp
 (eval-after-load 'web-mode
     '(progn
        (add-hook 'web-mode-hook #'add-node-modules-path)
