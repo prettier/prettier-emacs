@@ -128,14 +128,13 @@ a `before-save-hook'."
              (t
               (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
 
-(defun prettier-js--process-errors (filename errorfile errbuf)
-  "Process errors for FILENAME, using an ERRORFILE and display the output in ERRBUF."
+(defun prettier-js--process-errors (filename errbuf)
+  "Prettify output in ERRBUF, expand mentions of stdin to FILENAME."
   (with-current-buffer errbuf
     (if (eq prettier-js-show-errors 'echo)
         (progn
           (message "%s" (buffer-string))
           (prettier-js--kill-error-buffer errbuf))
-      (insert-file-contents errorfile nil nil nil)
       ;; Convert the prettier stderr to something understood by the compilation mode.
       (goto-char (point-min))
       (insert "prettier errors:\n")
@@ -160,7 +159,7 @@ a `before-save-hook'."
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
-          (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
+          (errbuf (get-buffer-create "*prettier errors*"))
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
           (coding-system-for-write 'utf-8)
@@ -176,25 +175,42 @@ a `before-save-hook'."
          (save-restriction
            (widen)
            (write-region nil nil bufferfile)
-           (if errbuf
-               (with-current-buffer errbuf
-                 (setq buffer-read-only nil)
-                 (erase-buffer)))
            (with-current-buffer patchbuf
              (erase-buffer))
-           (if (zerop (apply 'call-process
-                             prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
-               (progn
-                 (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
-                                      outputfile)
-                 (prettier-js--apply-rcs-patch patchbuf)
-                 (message "Applied prettier with args `%s'" prettier-js-args)
-                 (if errbuf (prettier-js--kill-error-buffer errbuf)))
-             (message "Could not apply prettier")
-             (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))
-             ))
+           (let* ((exit-code
+                   (apply 'call-process
+                          prettier-js-command
+                          bufferfile
+                          `((:file ,outputfile) ,errorfile)
+                          nil
+                          (append prettier-js-args
+                                  width-args
+                                  `("--stdin"
+                                    "--stdin-filepath"
+                                    ,buffer-file-name
+                                    "--cursor-offset"
+                                    ,(number-to-string (point))))))
+                  (new-point
+                   (with-current-buffer errbuf
+                     (setq buffer-read-only nil)
+                     (insert-file-contents errorfile nil nil nil t)
+                     (when (and (zerop exit-code)
+                                (looking-at "[0-9]+"))
+                       (string-to-number (match-string 0))))))
+             (if (zerop exit-code)
+                 (progn
+                   (call-process-region
+                    (point-min) (point-max) "diff" nil patchbuf nil
+                    "-n" "--strip-trailing-cr" "-" outputfile)
+                   (prettier-js--apply-rcs-patch patchbuf)
+                   (unless (null new-point) (goto-char new-point))
+                   (message "Applied prettier with args `%s'"
+                            prettier-js-args)
+                   (prettier-js--kill-error-buffer errbuf))
+               (message "Could not apply prettier")
+               (prettier-js--process-errors (buffer-file-name)
+                                            errbuf))))
+
        (kill-buffer patchbuf)
        (delete-file errorfile)
        (delete-file bufferfile)
