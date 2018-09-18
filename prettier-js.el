@@ -43,6 +43,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'compile))
+
 (defgroup prettier-js nil
   "Minor mode to format JS code on file save"
   :group 'languages
@@ -78,6 +80,18 @@ a `before-save-hook'."
           (const :tag "Fill column" fill)
           (const :tag "None" nil))
   :group 'prettier-js)
+
+(defvar prettier-compilation-regexps
+  '("^\\([^:[:cntrl:]]+\\):[ ]*\\([^[:cntrl:]]*?\\)[ ]*(\\([[:digit:]]+\\):\\([[:digit:]]+\\))"
+    1 3 4 nil 2)
+  "Specifications for matching errors in prettier invocations.
+See `compilation-error-regexp-alist' for help on their format.")
+
+(eval-after-load 'compile
+  '(progn
+     (add-to-list 'compilation-error-regexp-alist-alist
+                  (cons 'prettier prettier-compilation-regexps))
+     (add-to-list 'compilation-error-regexp-alist 'prettier)))
 
 (defun prettier-js--goto-line (line)
   "Move cursor to line LINE."
@@ -138,9 +152,12 @@ a `before-save-hook'."
       (insert-file-contents errorfile nil nil nil)
       ;; Convert the prettier stderr to something understood by the compilation mode.
       (goto-char (point-min))
-      (insert "prettier errors:\n")
-      (while (search-forward-regexp "^stdin" nil t)
-        (replace-match (file-name-nondirectory filename)))
+      (save-excursion
+        (while (search-forward-regexp "^\\[error\\] " nil t)
+          (replace-match "")))
+      (while (search-forward-regexp "^stdin\\>" nil t)
+        (replace-match filename))
+      (goto-char (point-min))
       (compilation-mode)
       (display-buffer errbuf))))
 
