@@ -43,6 +43,8 @@
 
 ;;; Code:
 
+(require 'json)
+
 (defgroup prettier-js nil
   "Minor mode to format JS code on file save"
   :group 'languages
@@ -78,6 +80,95 @@ a `before-save-hook'."
           (const :tag "Fill column" fill)
           (const :tag "None" nil))
   :group 'prettier-js)
+
+(defcustom prettier-js-sync-config-p t
+  "Whether to attempt to sync prettier configuration to Emacs."
+  :type 'boolean
+  :group 'prettier-js)
+
+(defvar prettier-home (file-name-directory
+                       (or load-file-name buffer-file-name))
+  "Directory with `prettier-js.el' and the JS helper plugin.")
+
+(defvar prettier-js-sync-settings
+  '(((fill-column                   ; built-in
+      js3-max-columns)              ; js3-mode
+     :printWidth)
+
+    ((enh-ruby-indent-tabs-mode
+      indent-tabs-mode              ; built-in
+      js3-indent-tabs-mode          ; js3-mode
+      ruby-indent-tabs-mode)        ; ruby-mode
+     :useTabs)
+
+    ((c-basic-offset                ; cc-mode
+      css-indent-offset             ; css-mode, scss-mode etc
+      enh-ruby-indent-level         ; enh-ruby-mode
+      graphql-indent-level          ; graphql-mode
+      js-indent-level               ; js-mode
+      js2-basic-offset              ; js2-mode
+      js3-indent-level              ; js3-mode
+      lua-indent-level              ; lua-mode
+      python-indent                 ; python-mode
+      ruby-indent-level             ; ruby-mode
+      sgml-basic-offset             ; js2-mode (used for JSX)
+      smie-indent-basic             ; smie.el (generic)
+      standard-indent               ; indent.el (generic)
+      tab-width                     ; built-in
+      typescript-indent-level       ; typescript-mode
+      web-mode-code-indent-offset   ; web-mode
+      web-mode-css-indent-offset    ; web-mode
+      yaml-indent-offset)           ; yaml-mode
+     :tabWidth)
+
+    ((js-indent-first-init)
+     nil)
+
+    ;; Unless prettier has trailing commas disabled, don't warn
+    ;; about their presence
+    ((js2-strict-trailing-comma-warning
+      js3-strict-trailing-comma-warning)
+     :trailingComma
+     (lambda (trailing-comma)
+       (case trailing-comma
+         ("es5" nil)
+         ("all" nil)
+         (otherwise 'unchanged))))
+
+    ;; When prettier has semicolons disabled, don't warn
+    ;; about their absence
+    ((js2-strict-missing-semi-warning
+      js3-strict-missing-semi-warning)
+     :semi
+     (lambda (semi)
+       (case semi
+         (nil nil)
+         (otherwise 'unchanged))))
+
+    ((web-mode-auto-quote-style)
+     :singleQuote
+     (lambda (single-quote)
+       (if single-quote 2 1))))
+  "Settings to sync from Prettier to Emacs configuration.
+
+A list with element a list of two or three elements:
+
+  `(VAR-LIST SOURCE-CONFIG [TRANSFORM-FN])'
+
+VAR-LIST is a list of Emacs variables to set.
+
+SOURCE-CONFIG is a keyword specifying which Prettier
+configuration option to use for setting the Emacs variables.
+
+TRANSFORM-FN is an optional function; when present, it is called
+with the value of the Prettier option and the result is used for
+setting the Emacs variables, unless it is the symbol `unchanged'.
+If that symbol is returned, Emacs variables won't be changed.")
+
+(defvar-local prettier-js-previous-local-settings nil
+  "Used to backup settings so they can be restored later.")
+
+(defvar-local prettier-js-config-cache nil)
 
 (defun prettier-js--goto-line (line)
   "Move cursor to line LINE."
@@ -153,6 +244,18 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
+(defun prettier-js--base-args ()
+  "Return common CLI arguments."
+  (append
+   prettier-js-args
+   (cond
+    ((equal prettier-js-width-mode 'window)
+     (list "--print-width" (number-to-string (window-body-width))))
+    ((equal prettier-js-width-mode 'fill)
+     (list "--print-width" (number-to-string fill-column)))
+    (t
+     '()))))
+
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
@@ -164,14 +267,7 @@ a `before-save-hook'."
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
           (coding-system-for-write 'utf-8)
-          (width-args
-           (cond
-            ((equal prettier-js-width-mode 'window)
-             (list "--print-width" (number-to-string (window-body-width))))
-            ((equal prettier-js-width-mode 'fill)
-             (list "--print-width" (number-to-string fill-column)))
-            (t
-             '()))))
+          (coding-system-for-write 'utf-8))
      (unwind-protect
          (save-restriction
            (widen)
@@ -184,7 +280,7 @@ a `before-save-hook'."
              (erase-buffer))
            (if (zerop (apply 'call-process
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
+                             nil (append (prettier-js--base-args) (list "--stdin" "--stdin-filepath" buffer-file-name))))
                (progn
                  (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
@@ -200,14 +296,127 @@ a `before-save-hook'."
        (delete-file bufferfile)
        (delete-file outputfile))))
 
+(defun prettier-js--load-config ()
+  "Load prettier config for current buffer.
+
+Prettier configuration is serialized using a special plug-in and
+then loaded as JSON with objects as plists and false as nil."
+  (let ((file-name (buffer-file-name))
+        (json-object-type 'plist)
+        (json-false nil))
+    (with-temp-buffer
+      ;; Note: Prettier outputs blank for blank input, therefore we
+      ;; need to feed it something. Any text will do since it's
+      ;; ignored by the plugin parser.
+      (insert ".")
+      (if (zerop (apply 'call-process-region
+                        (point-min) (point-max)
+                        prettier-js-command
+                        t '(t nil) nil
+                        (append
+                         (prettier-js--base-args)
+                         `("--plugin" ,(concat prettier-home
+                                               "OptionsPlugin.js")
+                           "--parser" "optionsPrinter"
+                           "--stdin"
+                           "--stdin-filepath" ,file-name
+                           ))))
+          (progn
+            (goto-char (point-min))
+            (json-read))
+        (error "Cannot load prettier config")))))
+
+(defun prettier-js--sync-config ()
+  "Try to sync prettier config for current buffer.
+
+Tries loading the configuration, ignoring failure with a message.
+
+If loaded successfully, uses it to set a variety of buffer-local
+variables in an effort to make pre-formatting indentation etc as
+close to post-formatting as possible."
+  (condition-case-unless-debug nil
+      (setq
+       prettier-js-config-cache
+       (prettier-js--load-config)
+
+       prettier-js-previous-local-settings
+       (seq-filter
+        'identity
+        (apply
+         'append
+         (mapcar
+          (lambda (setting)
+            (let* ((vars (nth 0 setting))
+                   (source (nth 1 setting))
+                   (value (funcall
+                           (or (nth 2 setting) 'identity)
+                           (if (keywordp source)
+                               (plist-get prettier-js-config-cache
+                                          source)
+                             source))))
+              (unless (eq value 'unchanged)
+                (mapcar
+                 (lambda (var)
+                   (when (boundp var)
+                     (let ((result
+                            (list var (local-variable-p var)
+                                  (eval var)
+                                  value)))
+                       (set (make-local-variable var) value)
+                       result)))
+                 vars))))
+          prettier-js-sync-settings))))
+    ;; Ignore any errors but print a warning
+    ((debug error)
+     (message "Could not sync Prettier config, consider setting \
+`prettier-js-sync-config-p' to nil"))))
+
 ;;;###autoload
 (define-minor-mode prettier-js-mode
   "Runs prettier on file save when this mode is turned on"
   :lighter " Prettier"
   :global nil
   (if prettier-js-mode
-      (add-hook 'before-save-hook 'prettier-js nil 'local)
-    (remove-hook 'before-save-hook 'prettier-js 'local)))
+      (progn
+        (add-hook 'before-save-hook 'prettier-js nil 'local)
+        (when prettier-js-sync-config-p
+          (prettier-js--maybe-sync-config)
+          (add-hook 'after-change-major-mode-hook
+                    'prettier-js--maybe-sync-config
+                    t
+                    'local)))
+
+    (remove-hook 'before-save-hook 'prettier-js 'local)
+    (remove-hook 'after-change-major-mode-hook
+                 'prettier-js--maybe-sync-config
+                 'local)
+
+    ;; Restore modified settings
+    (ignore-errors
+      (mapc
+       (lambda (backup-setting)
+         (let ((var (car backup-setting))
+               (new-value (nth 3 backup-setting)))
+           ;; Leave the variable alone if the user has changed it
+           ;; since loading `prettier-js-mode'
+           (when (equal new-value (eval var))
+             ;; Was it a local variable before we set it?
+             (if (nth 1 backup-setting)
+                 ;; Yes, set it to the old value
+                 (set var (nth 2 backup-setting))
+               ;; No, remove the local variable
+               (kill-local-variable var)))))
+       prettier-js-previous-local-settings))))
+
+(defun prettier-js--maybe-sync-config ()
+  "Sync Prettier config in current buffer when appropriate.
+
+Config is synced when `prettier-js-sync-config-p' is non-nil and
+`prettier-js-mode' is enabled in current buffer."
+  (when (and prettier-js-mode
+             prettier-js-sync-config-p
+             (null prettier-js-config-cache))
+    (prettier-js--sync-config)))
 
 (provide 'prettier-js)
 ;;; prettier-js.el ends here
