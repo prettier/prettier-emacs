@@ -153,6 +153,7 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
+;;;###autoload
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
