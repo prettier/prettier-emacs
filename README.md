@@ -25,6 +25,12 @@ First require the package:
 (require 'prettier-js)
 ```
 
+Or use [use-package](https://github.com/jwiegley/use-package)
+
+```elisp
+(use-package prettier-js)
+```
+
 Then you can hook to your favorite javascript mode:
 
 ```elisp
