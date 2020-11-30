@@ -33,6 +33,13 @@ Then you can hook to your favorite javascript mode:
 ...
 ```
 
+Or
+
+You can hook to multiple modes like the following:
+```elisp
+(add-hook '(js2-mode-hook rjsx-mode-hook web-mode-hook typescript-mode-hook typescript-tsx-mode-hook) 'prettier-js-mode)
+```
+
 ### Prettier arguments
 
 To adjust the CLI args used for the prettier command, you can customize the `prettier-js-args` variable:
