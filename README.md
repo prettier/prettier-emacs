@@ -37,7 +37,7 @@ Or
 
 You can hook to multiple modes like the following:
 ```elisp
-(add-hook '(js2-mode-hook rjsx-mode-hook web-mode-hook typescript-mode-hook typescript-tsx-mode-hook) 'prettier-js-mode)
+(add-hook '(js2-mode-hook rjsx-mode-hook web-mode-hook typescript-mode-hook typescript-tsx-mode-hook) #'prettier-js-mode)
 ```
 
 ### Prettier arguments
