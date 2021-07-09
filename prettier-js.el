@@ -158,6 +158,22 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
+(defun prettier-js--width-args ()
+  (cond
+   ((equal prettier-js-width-mode 'window)
+    (list "--print-width" (number-to-string (window-body-width))))
+   ((equal prettier-js-width-mode 'fill)
+    (list "--print-width" (number-to-string fill-column)))
+   (t
+    '())))
+
+(defun prettier-js--call-prettier (bufferfile outputfile errorfile)
+  (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
+        (width-args (prettier-js--width-args)))
+    (apply 'call-process
+           prettier-js-command bufferfile (list (list :file outputfile) errorfile)
+           nil (append prettier-js-args width-args (list "--stdin-filepath" localname)))))
+
 ;;;###autoload
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
@@ -169,16 +185,7 @@ a `before-save-hook'."
           (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
-          (coding-system-for-write 'utf-8)
-          (localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
-          (width-args
-           (cond
-            ((equal prettier-js-width-mode 'window)
-             (list "--print-width" (number-to-string (window-body-width))))
-            ((equal prettier-js-width-mode 'fill)
-             (list "--print-width" (number-to-string fill-column)))
-            (t
-             '()))))
+          (coding-system-for-write 'utf-8))
      (unwind-protect
          (save-restriction
            (widen)
@@ -189,9 +196,7 @@ a `before-save-hook'."
                  (erase-buffer)))
            (with-current-buffer patchbuf
              (erase-buffer))
-           (if (zerop (apply 'call-process
-                             prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin-filepath" localname))))
+           (if (zerop (prettier-js--call-prettier bufferfile outputfile errorfile))
                (progn
                  (call-process-region (point-min) (point-max) prettier-js-diff-command nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
