@@ -156,7 +156,10 @@ a `before-save-hook'."
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
-   (let* ((ext (file-name-extension buffer-file-name t))
+   (let* ((file-path
+           (or (buffer-file-name (buffer-base-buffer))
+               (error "Buffer '%s' is not visiting a file" (buffer-name))))
+          (ext (file-name-extension file-path t))
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
@@ -184,7 +187,7 @@ a `before-save-hook'."
              (erase-buffer))
            (if (zerop (apply 'call-process
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" buffer-file-name))))
+                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" file-path))))
                (progn
                  (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
@@ -193,7 +196,7 @@ a `before-save-hook'."
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))
+                 (prettier-js--process-errors (file-path) errorfile errbuf))
              ))
        (kill-buffer patchbuf)
        (delete-file errorfile)
