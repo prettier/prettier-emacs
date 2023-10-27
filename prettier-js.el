@@ -230,7 +230,10 @@ Returns the exit code from prettier."
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
-   (let* ((ext (file-name-extension buffer-file-name t))
+   (let* ((file-path
+           (or (buffer-file-name (buffer-base-buffer))
+               (error "Buffer '%s' is not visiting a file" (buffer-name))))
+          (ext (file-name-extension file-path t))
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
@@ -259,7 +262,7 @@ Returns the exit code from prettier."
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))
+                 (prettier-js--process-errors (file-path) errorfile errbuf))
              ))
        (kill-buffer patchbuf)
        (delete-file errorfile)
