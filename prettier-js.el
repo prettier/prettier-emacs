@@ -193,7 +193,7 @@ a `before-save-hook'."
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (buffer-file-name) errorfile errbuf))
+                 (prettier-js--process-errors (buffer-file-name) (if (string= prettier-js-command "prettier_d") outputfile errorfile) errbuf))
              ))
        (kill-buffer patchbuf)
        (delete-file errorfile)
