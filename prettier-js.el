@@ -165,6 +165,7 @@ a `before-save-hook'."
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
           (coding-system-for-write 'utf-8)
+          (localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
           (width-args
            (cond
             ((equal prettier-js-width-mode 'window)
@@ -185,7 +186,7 @@ a `before-save-hook'."
              (erase-buffer))
            (if (zerop (apply 'call-process
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin-filepath" buffer-file-name))))
+                             nil (append prettier-js-args width-args (list "--stdin-filepath" localname))))
                (progn
                  (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
