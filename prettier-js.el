@@ -153,6 +153,7 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
+;;;###autoload
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
@@ -185,7 +186,7 @@ a `before-save-hook'."
              (erase-buffer))
            (if (zerop (apply 'call-process
                              prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin" "--stdin-filepath" localname))))
+                             nil (append prettier-js-args width-args (list "--stdin-filepath" localname))))
                (progn
                  (call-process-region (point-min) (point-max) "diff" nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)

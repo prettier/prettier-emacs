@@ -25,6 +25,12 @@ First require the package:
 (require 'prettier-js)
 ```
 
+Or use `use-package` (available in Emacs 29.1 and above):
+
+```elisp
+(use-package prettier-js)
+```
+
 Then you can hook to your favorite javascript mode:
 
 ```elisp
@@ -63,6 +69,15 @@ And then hook to web-mode like this:
                             (enable-minor-mode
                              '("\\.jsx?\\'" . prettier-js-mode))))
 ```
+## Installing on Windows
+
+This package requires the `diff` tool which is already included on Unix platforms. The simplest way to install `diff` on Windows is to use [Chocolatey](https://chocolatey.org/). The steps are as follows:
+
+1. Follow the Chocolatey install instructions: https://chocolatey.org/install
+2. Open an Admin Powershell session
+3. Install the `diff` program: `choco install diffutils`
+
+You should now be able to open Emacs and successfully use this package.
 
 ## Customization
 
