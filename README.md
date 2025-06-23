@@ -25,6 +25,12 @@ First require the package:
 (require 'prettier-js)
 ```
 
+Or use `use-package` (available in Emacs 29.1 and above):
+
+```elisp
+(use-package prettier-js)
+```
+
 Then you can hook to your favorite javascript mode:
 
 ```elisp
