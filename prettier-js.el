@@ -170,13 +170,9 @@ When non-nil, contains the error message to display.")
       (kill-buffer errbuf))))
 
 (defun prettier-js--width-args ()
-  (cond
-   ((equal prettier-js-width-mode 'window)
-    (list "--print-width" (number-to-string (window-body-width))))
-   ((equal prettier-js-width-mode 'fill)
-    (list "--print-width" (number-to-string fill-column)))
-   (t
-    '())))
+  (pcase prettier-js-width-mode
+    ('window (list "--print-width" (number-to-string (window-body-width))))
+    ('fill (list "--print-width" (number-to-string fill-column)))))
 
 (defun prettier-js--find-node-modules-bin ()
   "Find the node_modules/.bin/prettier executable.
