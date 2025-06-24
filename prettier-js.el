@@ -1,9 +1,16 @@
 ;;; prettier-js.el --- Minor mode to format JS code on file save  -*- lexical-binding: t; -*-
 
-;; Version: 0.1.0
-
 ;; Copyright (c) 2014 The go-mode Authors. All rights reserved.
 ;; Portions Copyright (c) 2015-present, Facebook, Inc. All rights reserved.
+
+;; Author: James Long and contributors
+;; Created: 10 January 2017
+;; URL: https://github.com/prettier/prettier-emacs
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "28.1"))
+;; Keywords: convenience wp edit js
+
+;; This file is not part of GNU Emacs.
 
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions are
@@ -30,13 +37,6 @@
 ;; THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 ;; (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.)
-
-;; Author: James Long and contributors
-;; Created: 10 January 2017
-;; Url: https://github.com/prettier/prettier-emacs
-;; Keywords: convenience wp edit js
-
-;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 ;; Formats your JavaScript code using 'prettier' on file save.
