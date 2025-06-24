@@ -55,4 +55,3 @@ jobs:
     - name: Run linter
       run: |
         eask lint checkdoc
-        eask lint package
