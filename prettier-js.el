@@ -181,7 +181,7 @@ Otherwise, return nil."
 (defun prettier-js--find-node-modules-bin ()
   "Find the node_modules/.bin/prettier executable.
 Search starts from the current directory and moves up until found.
-Returns nil if not found."
+Returns the path to the executable if found, nil otherwise."
   (let ((dir (expand-file-name default-directory))
         (prettier-path nil))
     (while (and dir (not prettier-path))
@@ -197,8 +197,9 @@ Returns nil if not found."
 (defun prettier-js--get-command ()
   "Get the prettier command to use.
 If `prettier-js-use-modules-bin' is non-nil, search for the local
-prettier executable.
-Otherwise search for `prettier-js-command'."
+prettier executable in node_modules/.bin.
+Otherwise search for `prettier-js-command' in the system path.
+Signals an error if the executable cannot be found."
   (if prettier-js-use-modules-bin
       (or (prettier-js--find-node-modules-bin)
           (progn
@@ -268,7 +269,8 @@ Returns the exit code from prettier."
   "Menu for the Prettier minor mode.")
 
 (defun prettier-js--mode-line-indicator ()
-  "Return the indicator string for the mode line."
+  "Return the indicator string for the mode line.
+Shows error state if any errors occurred during formatting."
   (let ((indicator (if prettier-js-error-state
                        (propertize " Prettier[!]" 'face 'error)
                      " Prettier")))
@@ -278,13 +280,15 @@ Returns the exit code from prettier."
                 'mouse-face 'mode-line-highlight)))
 
 (defun prettier-js--error-menu-item ()
-  "Return a menu item showing the current error state."
+  "Return a menu item showing the current error state.
+Returns nil if there is no error state."
   (when prettier-js-error-state
     (vector (concat "Error: " prettier-js-error-state) nil nil)))
 
 (defun prettier-js--menu-filter (menu-items)
   "Filter function for the prettier menu to dynamically add error state.
-MENU-ITEMS are the static menu items."
+MENU-ITEMS are the static menu items.
+Adds an error item at the top of the menu if there is an error state."
   (if prettier-js-error-state
       (append (list (prettier-js--error-menu-item))
               '("---")
