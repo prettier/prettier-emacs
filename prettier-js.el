@@ -91,6 +91,10 @@ a `before-save-hook'."
           (const :tag "None" nil))
   :group 'prettier-js)
 
+(defvar-local prettier-js-error-state nil
+  "Indicates if there's an error with the prettier executable.
+When non-nil, contains the error message to display.")
+
 (defun prettier-js--goto-line (line)
   "Move cursor to line LINE."
   (goto-char (point-min))
@@ -197,7 +201,10 @@ prettier executable.
 Otherwise use `prettier-js-command'."
   (if prettier-js-use-modules-bin
       (or (prettier-js--find-node-modules-bin)
-          (user-error "Could not find node_modules/.bin/prettier executable"))
+          (progn
+            (setq prettier-js-error-state "node_modules/.bin/prettier not found")
+            (user-error "Could not find node_modules/.bin/prettier executable")))
+    (setq prettier-js-error-state nil)
     prettier-js-command))
 
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
@@ -220,6 +227,8 @@ Otherwise use `prettier-js-command'."
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
           (coding-system-for-write 'utf-8))
+     ;; Clear error state when attempting to run prettier
+     (setq prettier-js-error-state nil)
      (unwind-protect
          (save-restriction
            (widen)
@@ -246,11 +255,49 @@ Otherwise use `prettier-js-command'."
        (delete-file bufferfile)
        (delete-file outputfile))))
 
+(defvar prettier-js-mode-menu-map
+  (let ((map (make-sparse-keymap "Prettier")))
+    map)
+  "Menu for the Prettier minor mode.")
+
+(defun prettier-js--mode-line-indicator ()
+  "Return the indicator string for the mode line."
+  (let ((indicator (if prettier-js-error-state
+                       (propertize " Prettier[!]" 'face 'error)
+                     " Prettier")))
+    (propertize indicator
+                'local-map prettier-js-mode-menu-map
+                'help-echo "Prettier menu"
+                'mouse-face 'mode-line-highlight)))
+
+(defun prettier-js--error-menu-item ()
+  "Return a menu item showing the current error state."
+  (when prettier-js-error-state
+    (vector (concat "Error: " prettier-js-error-state) nil nil)))
+
+(defun prettier-js--menu-filter (menu-items)
+  "Filter function for the prettier menu to dynamically add error state.
+MENU-ITEMS are the static menu items."
+  (if prettier-js-error-state
+      (append (list (prettier-js--error-menu-item))
+              '("---")
+              menu-items)
+    menu-items))
+
+(easy-menu-define prettier-js-mode-menu prettier-js-mode-menu-map
+  "Menu for Prettier mode"
+  '("Prettier" :filter prettier-js--menu-filter
+    ["Format buffer" prettier-js t]
+    "---"
+    ["Turn off minor mode" prettier-js-mode :visible prettier-js-mode]
+    ["Help for minor mode" (describe-function 'prettier-js-mode) t]))
+
 ;;;###autoload
 (define-minor-mode prettier-js-mode
   "Runs prettier on file save when this mode is turned on"
-  :lighter " Prettier"
+  :lighter (:eval (prettier-js--mode-line-indicator))
   :global nil
+  :keymap prettier-js-mode-menu-map
   (if prettier-js-mode
       (add-hook 'before-save-hook 'prettier-js nil 'local)
     (remove-hook 'before-save-hook 'prettier-js 'local)))
