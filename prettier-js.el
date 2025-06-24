@@ -64,6 +64,13 @@
   :type '(repeat string)
   :group 'prettier-js)
 
+(defcustom prettier-js-use-modules-bin nil
+  "When non-nil, search for prettier in node_modules/.bin/ directory.
+Starts searching from the current directory and moves up until found.
+If not found, an error is reported."
+  :type 'boolean
+  :group 'prettier-js)
+
 (defcustom prettier-js-show-errors 'buffer
     "Where to display prettier error output.
 It can either be displayed in its own buffer, in the echo area, or not at all.
@@ -167,11 +174,38 @@ a `before-save-hook'."
    (t
     '())))
 
+(defun prettier-js--find-node-modules-bin ()
+  "Find the node_modules/.bin/prettier executable.
+Search starts from the current directory and moves up until found.
+Returns nil if not found."
+  (let ((dir (expand-file-name default-directory))
+        (prettier-path nil))
+    (while (and dir (not prettier-path))
+      (let ((candidate (expand-file-name "node_modules/.bin/prettier" dir)))
+        (if (file-executable-p candidate)
+            (setq prettier-path candidate)
+          (let ((parent (file-name-directory (directory-file-name dir))))
+            (if (or (not parent) (string= parent dir))
+                (setq dir nil)  ; reached root directory
+              (setq dir parent))))))
+    prettier-path))
+
+(defun prettier-js--get-command ()
+  "Get the prettier command to use.
+If `prettier-js-use-modules-bin' is non-nil, search for the local
+prettier executable.
+Otherwise use `prettier-js-command'."
+  (if prettier-js-use-modules-bin
+      (or (prettier-js--find-node-modules-bin)
+          (user-error "Could not find node_modules/.bin/prettier executable"))
+    prettier-js-command))
+
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
   (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
-        (width-args (prettier-js--width-args)))
+        (width-args (prettier-js--width-args))
+        (prettier-cmd (prettier-js--get-command)))
     (apply 'call-process
-           prettier-js-command bufferfile (list (list :file outputfile) errorfile)
+           prettier-cmd bufferfile (list (list :file outputfile) errorfile)
            nil (append prettier-js-args width-args (list "--stdin-filepath" localname)))))
 
 ;;;###autoload
