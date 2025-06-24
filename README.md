@@ -89,16 +89,6 @@ M-x customize-group prettier-js
 
 * `prettier-js-command` is the prettier command
 * `prettier-js-args` are the args passed to the prettier command
+* `prettier-js-use-modules-bin` enables use of `node_modules/.bin/prettier` (your project's prettier version)
 * `prettier-js-show-errors` customizes where to display the error output (buffer, echo or nil)
 * `prettier-js-width-mode` customizes the width when formatting buffer contents (window, fill or nil)
-
-## Using node_modules/.bin/prettier
-
-If you want to use your project's prettier version you can rely on https://github.com/codesuki/add-node-modules-path
-
-```elisp
-(eval-after-load 'web-mode
-    '(progn
-       (add-hook 'web-mode-hook #'add-node-modules-path)
-       (add-hook 'web-mode-hook #'prettier-js-mode)))
-```
