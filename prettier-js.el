@@ -198,14 +198,18 @@ Returns nil if not found."
   "Get the prettier command to use.
 If `prettier-js-use-modules-bin' is non-nil, search for the local
 prettier executable.
-Otherwise use `prettier-js-command'."
+Otherwise search for `prettier-js-command'."
   (if prettier-js-use-modules-bin
       (or (prettier-js--find-node-modules-bin)
           (progn
             (setq prettier-js-error-state "node_modules/.bin/prettier not found")
             (user-error "Could not find node_modules/.bin/prettier executable")))
-    (setq prettier-js-error-state nil)
-    prettier-js-command))
+    (if (executable-find prettier-js-command)
+        (progn
+          (setq prettier-js-error-state nil)
+          prettier-js-command)
+      (setq prettier-js-error-state "Prettier executable not found")
+      (user-error "Could not find prettier executable"))))
 
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
   (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
