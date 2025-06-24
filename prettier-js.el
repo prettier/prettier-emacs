@@ -1,4 +1,4 @@
-;;; prettier-js.el --- Minor mode to format JS code on file save
+;;; prettier-js.el --- Minor mode to format JS code on file save  -*- lexical-binding: t; -*-
 
 ;; Version: 0.1.0
 
@@ -50,12 +50,12 @@
   :link '(url-link :tag "Repository" "https://github.com/prettier/prettier"))
 
 (defcustom prettier-js-command "prettier"
-  "The 'prettier' command."
+  "The `prettier' command."
   :type 'string
   :group 'prettier-js)
 
 (defcustom prettier-js-diff-command "diff"
-  "The 'diff' command for generating RCS diff."
+  "The `diff' command for generating RCS diff."
   :type 'string
   :group 'prettier-js)
 
@@ -134,7 +134,7 @@ a `before-save-hook'."
               (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
 
 (defun prettier-js--process-errors (filename errorfile errbuf)
-  "Process errors for FILENAME, using an ERRORFILE and display the output in ERRBUF."
+  "Process errors for FILENAME, using ERRORFILE, displaying the output in ERRBUF."
   (with-current-buffer errbuf
     (if (eq prettier-js-show-errors 'echo)
         (progn
