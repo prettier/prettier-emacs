@@ -80,6 +80,20 @@ This package requires the `diff` tool which is already included on Unix platform
 
 You should now be able to open Emacs and successfully use this package.
 
+## BSD Users
+
+On BSD systems (like OpenBSD, FreeBSD), the default `diff` program may not support some GNU diff features that prettier-js requires, such as `--strip-trailing-cr`. To resolve this:
+
+1. Install GNU diff (often called `gdiff` or `gnudiff`):
+   - On OpenBSD: `pkg_add gdiff`
+   - On FreeBSD: `pkg install diffutils`
+
+2. Configure prettier-js to use the GNU diff implementation:
+   ```elisp
+   (setq prettier-js-diff-command "gdiff")
+   ```
+   (Use the appropriate command name for your system, which might be `gdiff`, `gnudiff`, or `gd`)
+
 ## Customization
 
 This package is customizable via custom.el:
