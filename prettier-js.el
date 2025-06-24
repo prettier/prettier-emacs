@@ -64,6 +64,13 @@
   :type '(repeat string)
   :group 'prettier-js)
 
+(defcustom prettier-js-use-modules-bin nil
+  "When non-nil, search for prettier in node_modules/.bin/ directory.
+Starts searching from the current directory and moves up until found.
+If not found, an error is reported."
+  :type 'boolean
+  :group 'prettier-js)
+
 (defcustom prettier-js-show-errors 'buffer
     "Where to display prettier error output.
 It can either be displayed in its own buffer, in the echo area, or not at all.
@@ -83,6 +90,10 @@ a `before-save-hook'."
           (const :tag "Fill column" fill)
           (const :tag "None" nil))
   :group 'prettier-js)
+
+(defvar-local prettier-js-error-state nil
+  "Indicates if there's an error with the prettier executable.
+When non-nil, contains the error message to display.")
 
 (defun prettier-js--goto-line (line)
   "Move cursor to line LINE."
@@ -158,6 +169,60 @@ a `before-save-hook'."
         (erase-buffer))
       (kill-buffer errbuf))))
 
+(defun prettier-js--width-args ()
+  "Return prettier width arguments based on `prettier-js-width-mode'.
+If mode is `window', use the window width.
+If mode is `fill', use the fill-column value.
+Otherwise, return nil."
+  (pcase prettier-js-width-mode
+    ('window (list "--print-width" (number-to-string (window-body-width))))
+    ('fill (list "--print-width" (number-to-string fill-column)))))
+
+(defun prettier-js--find-node-modules-bin ()
+  "Find the node_modules/.bin/prettier executable.
+Search starts from the current directory and moves up until found.
+Returns the path to the executable if found, nil otherwise."
+  (let ((dir (expand-file-name default-directory))
+        (prettier-path nil))
+    (while (and dir (not prettier-path))
+      (let ((candidate (expand-file-name "node_modules/.bin/prettier" dir)))
+        (if (file-executable-p candidate)
+            (setq prettier-path candidate)
+          (let ((parent (file-name-directory (directory-file-name dir))))
+            (if (or (not parent) (string= parent dir))
+                (setq dir nil)  ; reached root directory
+              (setq dir parent))))))
+    prettier-path))
+
+(defun prettier-js--get-command ()
+  "Get the prettier command to use.
+If `prettier-js-use-modules-bin' is non-nil, search for the local
+prettier executable in node_modules/.bin.
+Otherwise search for `prettier-js-command' in the system path.
+Signals an error if the executable cannot be found."
+  (if prettier-js-use-modules-bin
+      (or (prettier-js--find-node-modules-bin)
+          (progn
+            (setq prettier-js-error-state "node_modules/.bin/prettier not found")
+            (user-error "Could not find node_modules/.bin/prettier executable")))
+    (if (executable-find prettier-js-command)
+        (progn
+          (setq prettier-js-error-state nil)
+          prettier-js-command)
+      (setq prettier-js-error-state "Prettier executable not found")
+      (user-error "Could not find prettier executable"))))
+
+(defun prettier-js--call-prettier (bufferfile outputfile errorfile)
+  "Call prettier on BUFFERFILE, writing the result to OUTPUTFILE.
+Any errors are written to ERRORFILE.
+Returns the exit code from prettier."
+  (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
+        (width-args (prettier-js--width-args))
+        (prettier-cmd (prettier-js--get-command)))
+    (apply 'call-process
+           prettier-cmd bufferfile (list (list :file outputfile) errorfile)
+           nil (append prettier-js-args width-args (list "--stdin-filepath" localname)))))
+
 ;;;###autoload
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
@@ -169,16 +234,9 @@ a `before-save-hook'."
           (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
-          (coding-system-for-write 'utf-8)
-          (localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
-          (width-args
-           (cond
-            ((equal prettier-js-width-mode 'window)
-             (list "--print-width" (number-to-string (window-body-width))))
-            ((equal prettier-js-width-mode 'fill)
-             (list "--print-width" (number-to-string fill-column)))
-            (t
-             '()))))
+          (coding-system-for-write 'utf-8))
+     ;; Clear error state when attempting to run prettier
+     (setq prettier-js-error-state nil)
      (unwind-protect
          (save-restriction
            (widen)
@@ -189,9 +247,7 @@ a `before-save-hook'."
                  (erase-buffer)))
            (with-current-buffer patchbuf
              (erase-buffer))
-           (if (zerop (apply 'call-process
-                             prettier-js-command bufferfile (list (list :file outputfile) errorfile)
-                             nil (append prettier-js-args width-args (list "--stdin-filepath" localname))))
+           (if (zerop (prettier-js--call-prettier bufferfile outputfile errorfile))
                (progn
                  (call-process-region (point-min) (point-max) prettier-js-diff-command nil patchbuf nil "-n" "--strip-trailing-cr" "-"
                                       outputfile)
@@ -207,11 +263,52 @@ a `before-save-hook'."
        (delete-file bufferfile)
        (delete-file outputfile))))
 
+(defvar prettier-js-mode-menu-map
+  (let ((map (make-sparse-keymap "Prettier")))
+    map)
+  "Menu for the Prettier minor mode.")
+
+(defun prettier-js--mode-line-indicator ()
+  "Return the indicator string for the mode line.
+Shows error state if any errors occurred during formatting."
+  (let ((indicator (if prettier-js-error-state
+                       (propertize " Prettier[!]" 'face 'error)
+                     " Prettier")))
+    (propertize indicator
+                'local-map prettier-js-mode-menu-map
+                'help-echo "Prettier menu"
+                'mouse-face 'mode-line-highlight)))
+
+(defun prettier-js--error-menu-item ()
+  "Return a menu item showing the current error state.
+Returns nil if there is no error state."
+  (when prettier-js-error-state
+    (vector (concat "Error: " prettier-js-error-state) nil nil)))
+
+(defun prettier-js--menu-filter (menu-items)
+  "Filter function for the prettier menu to dynamically add error state.
+MENU-ITEMS are the static menu items.
+Adds an error item at the top of the menu if there is an error state."
+  (if prettier-js-error-state
+      (append (list (prettier-js--error-menu-item))
+              '("---")
+              menu-items)
+    menu-items))
+
+(easy-menu-define prettier-js-mode-menu prettier-js-mode-menu-map
+  "Menu for Prettier mode"
+  '("Prettier" :filter prettier-js--menu-filter
+    ["Format buffer" prettier-js t]
+    "---"
+    ["Turn off minor mode" prettier-js-mode :visible prettier-js-mode]
+    ["Help for minor mode" (describe-function 'prettier-js-mode) t]))
+
 ;;;###autoload
 (define-minor-mode prettier-js-mode
   "Runs prettier on file save when this mode is turned on"
-  :lighter " Prettier"
+  :lighter (:eval (prettier-js--mode-line-indicator))
   :global nil
+  :keymap prettier-js-mode-menu-map
   (if prettier-js-mode
       (add-hook 'before-save-hook 'prettier-js nil 'local)
     (remove-hook 'before-save-hook 'prettier-js 'local)))
