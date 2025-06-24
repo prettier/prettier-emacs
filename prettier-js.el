@@ -1,4 +1,4 @@
-;;; prettier-js.el --- Minor mode to format JS code on file save
+;;; prettier-js.el --- Minor mode to format JS code on file save  -*- lexical-binding: t; -*-
 
 ;; Version: 0.1.0
 
