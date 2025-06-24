@@ -170,6 +170,10 @@ When non-nil, contains the error message to display.")
       (kill-buffer errbuf))))
 
 (defun prettier-js--width-args ()
+  "Return prettier width arguments based on `prettier-js-width-mode'.
+If mode is `window', use the window width.
+If mode is `fill', use the fill-column value.
+Otherwise, return nil."
   (pcase prettier-js-width-mode
     ('window (list "--print-width" (number-to-string (window-body-width))))
     ('fill (list "--print-width" (number-to-string fill-column)))))
@@ -208,6 +212,9 @@ Otherwise search for `prettier-js-command'."
       (user-error "Could not find prettier executable"))))
 
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
+  "Call prettier on BUFFERFILE, writing the result to OUTPUTFILE.
+Any errors are written to ERRORFILE.
+Returns the exit code from prettier."
   (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
         (width-args (prettier-js--width-args))
         (prettier-cmd (prettier-js--get-command)))
