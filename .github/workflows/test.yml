@@ -46,8 +46,13 @@ jobs:
       with:
         version: 'snapshot'
 
-    - name: Run tests
+    - name: Build
       run: |
         eask package
         eask install
+        eask compile
+
+    - name: Run linter
+      run: |
+        eask lint checkdoc
         eask lint package
