@@ -13,4 +13,4 @@
 
 (source 'gnu)
 
-(depends-on "emacs" "26.1")
+(depends-on "emacs" "28.1")
