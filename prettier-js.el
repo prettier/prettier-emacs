@@ -183,9 +183,12 @@ Otherwise, return nil."
 Search starts from the current directory and moves up until found.
 Returns the path to the executable if found, nil otherwise."
   (let ((dir (expand-file-name default-directory))
-        (prettier-path nil))
+        (prettier-path nil)
+        (executable-name (if (eq system-type 'windows-nt)
+                             "prettier.cmd"
+                           "prettier")))
     (while (and dir (not prettier-path))
-      (let ((candidate (expand-file-name "node_modules/.bin/prettier" dir)))
+      (let ((candidate (expand-file-name (concat "node_modules/.bin/" executable-name) dir)))
         (if (file-executable-p candidate)
             (setq prettier-path candidate)
           (let ((parent (file-name-directory (directory-file-name dir))))
