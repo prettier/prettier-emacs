@@ -1,0 +1,8 @@
+{
+  "name": "prettier-test-project",
+  "version": "1.0.0",
+  "description": "Test project for prettier-js",
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}
