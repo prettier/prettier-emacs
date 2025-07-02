@@ -215,23 +215,32 @@ Signals an error if the executable cannot be found."
       (setq prettier-js-error-state "Prettier executable not found")
       (user-error "Could not find prettier executable"))))
 
+(defun prettier-js--file-path ()
+  "Safely get the current buffer's file path, like function `buffer-file-name'."
+  ;; Support indirect buffers (created by `clone-indirect-buffer'):
+  (let ((file-path (buffer-file-name (buffer-base-buffer))))
+    ;; Return nil when buffer isn't visiting a file:
+    (when file-path
+      ;; Try to support editing remote files via TRAMP:
+      (or (file-remote-p file-path 'localname) file-path))))
+
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
   "Call prettier on BUFFERFILE, writing the result to OUTPUTFILE.
 Any errors are written to ERRORFILE.
 Returns the exit code from prettier."
-  (let ((localname (or (file-remote-p buffer-file-name 'localname) buffer-file-name))
+  (let ((file-path (prettier-js--file-path))
         (width-args (prettier-js--width-args))
         (prettier-cmd (prettier-js--get-command)))
     (apply 'call-process
            prettier-cmd bufferfile (list (list :file outputfile) errorfile)
-           nil (append prettier-js-args width-args (list "--stdin-filepath" localname)))))
+           nil (append prettier-js-args width-args (list "--stdin-filepath" file-path)))))
 
 ;;;###autoload
 (defun prettier-js ()
    "Format the current buffer according to the prettier tool."
    (interactive)
    (let* ((file-path
-           (or (buffer-file-name (buffer-base-buffer))
+           (or (prettier-js--file-path)
                (error "Buffer '%s' is not visiting a file" (buffer-name))))
           (ext (file-name-extension file-path t))
           (bufferfile (make-temp-file "prettier" nil ext))
