@@ -241,7 +241,7 @@ Returns the exit code from prettier."
    (interactive)
    (let* ((file-path
            (or (prettier-js--file-path)
-               (error "Buffer '%s' is not visiting a file" (buffer-name))))
+               (user-error "Buffer `%s' is not visiting a file" (buffer-name))))
           (ext (file-name-extension file-path t))
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
