@@ -215,6 +215,17 @@ Signals an error if the executable cannot be found."
       (setq prettier-js-error-state "Prettier executable not found")
       (user-error "Could not find prettier executable"))))
 
+(defun prettier-js--get-diff-command ()
+  "Get the diff command to use.
+Searches for `prettier-js-diff-command' in the system path.
+Signals an error if the executable cannot be found."
+  (if (executable-find prettier-js-diff-command)
+      (progn
+        (setq prettier-js-error-state nil)
+        prettier-js-diff-command)
+    (setq prettier-js-error-state "Diff executable not found")
+    (user-error "Could not find diff executable")))
+
 (defun prettier-js--file-path ()
   "Safely get the current buffer's file path, like function `buffer-file-name'."
   ;; Support indirect buffers (created by `clone-indirect-buffer'):
@@ -234,6 +245,13 @@ Returns the exit code from prettier."
     (apply 'call-process
            prettier-cmd bufferfile (list (list :file outputfile) errorfile)
            nil (append prettier-js-args width-args (list "--stdin-filepath" file-path)))))
+
+(defun prettier-js--call-diff (outputfile patchbuf)
+  "Call diff command to generate patch between current buffer and OUTPUTFILE.
+PATCHBUF is the buffer where the diff output will be written."
+  (let ((diff-cmd (prettier-js--get-diff-command)))
+    (call-process-region (point-min) (point-max) diff-cmd nil patchbuf nil
+                         "-n" "--strip-trailing-cr" "-" outputfile)))
 
 ;;;###autoload
 (defun prettier-js ()
@@ -264,8 +282,7 @@ Returns the exit code from prettier."
              (erase-buffer))
            (if (zerop (prettier-js--call-prettier bufferfile outputfile errorfile))
                (progn
-                 (call-process-region (point-min) (point-max) prettier-js-diff-command nil patchbuf nil "-n" "--strip-trailing-cr" "-"
-                                      outputfile)
+                 (prettier-js--call-diff outputfile patchbuf)
                  (prettier-js--apply-rcs-patch patchbuf)
                  (message "Applied prettier with args `%s'" prettier-js-args)
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
