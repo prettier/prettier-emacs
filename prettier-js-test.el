@@ -99,5 +99,42 @@
       (when (file-exists-p temp-dir)
         (delete-directory temp-dir t)))))
 
+(ert-deftest prettier-js-test-indirect-buffer ()
+  "Test that prettier-js works correctly with indirect buffers."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (clean-file (expand-file-name "fixtures/clean.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js")))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          (let (direct-buffer indirect-buffer)
+            ;; Visit the temp file and clone its buffer
+            (setq direct-buffer (find-file-noselect temp-file))
+            (with-current-buffer direct-buffer
+              (setq indirect-buffer (clone-indirect-buffer nil nil)))
+
+            ;; Switch to the indirect buffer and format it
+            (with-current-buffer indirect-buffer
+              (prettier-js)
+
+              ;; Get the expected clean content
+              (let ((expected-content
+                     (with-temp-buffer
+                       (insert-file-contents clean-file)
+                       (buffer-string)))
+                    (actual-content (buffer-string)))
+                ;; Compare the formatted content with the expected clean content
+                (should (string= actual-content expected-content))
+                (kill-buffer)))
+
+            ;; Kill the direct buffer too
+            (kill-buffer direct-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
