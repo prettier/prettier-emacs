@@ -136,5 +136,16 @@
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
 
+(ert-deftest prettier-js-test-no-file-buffer ()
+  "Test that prettier-js signals an error when buffer is not visiting a file."
+  (with-temp-buffer
+    ;; Add some JavaScript content to the buffer
+    (insert "function test(a,b) { return a + b; }")
+    (js-mode)
+
+    ;; Verify that the appropriate error is signaled with the correct message
+    (let ((err (should-error (prettier-js) :type 'user-error)))
+      (should (string-match-p "Buffer ‘.*’ is not visiting a file" (cadr err))))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
