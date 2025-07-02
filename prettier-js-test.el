@@ -145,7 +145,7 @@
 
     ;; Verify that the appropriate error is signaled with the correct message
     (let ((err (should-error (prettier-js) :type 'user-error)))
-      (should (string-match-p "Buffer ‘.*’ is not visiting a file" (cadr err))))))
+      (should (string-match-p "Buffer .* is not visiting a file" (cadr err))))))
 
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
