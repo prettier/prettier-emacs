@@ -262,7 +262,7 @@ Returns the exit code from prettier."
                  (if errbuf (prettier-js--kill-error-buffer errbuf)))
              (message "Could not apply prettier")
              (if errbuf
-                 (prettier-js--process-errors (file-path) errorfile errbuf))
+                 (prettier-js--process-errors file-path errorfile errbuf))
              ))
        (kill-buffer patchbuf)
        (delete-file errorfile)
