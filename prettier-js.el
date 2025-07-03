@@ -91,6 +91,9 @@ a `before-save-hook'."
           (const :tag "None" nil))
   :group 'prettier-js)
 
+(defvar prettier-js-daemon-commands '("prettier_d" "prettierd")
+  "List of prettier daemon commands that put errors in stdout rather than stderr.")
+
 (defvar-local prettier-js-error-state nil
   "Indicates if there's an error with the prettier executable.
 When non-nil, contains the error message to display.")
@@ -264,6 +267,10 @@ PATCHBUF is the buffer where the diff output will be written."
           (bufferfile (make-temp-file "prettier" nil ext))
           (outputfile (make-temp-file "prettier" nil ext))
           (errorfile (make-temp-file "prettier" nil ext))
+          ;; Some prettier daemons put errors in stdout rather than stderr
+          (program-errorfile (if (member prettier-js-command prettier-js-daemon-commands)
+                                 outputfile
+                               errorfile))
           (errbuf (if prettier-js-show-errors (get-buffer-create "*prettier errors*")))
           (patchbuf (get-buffer-create "*prettier patch*"))
           (coding-system-for-read 'utf-8)
@@ -295,9 +302,8 @@ PATCHBUF is the buffer where the diff output will be written."
                    (setq prettier-js-error-state "Diff command had an issue")
                    (user-error "Error calling diff; is GNU diff on your path?")))
              (message "Could not apply prettier")
-             (if errbuf
-                 (prettier-js--process-errors file-path errorfile errbuf))
-             ))
+             (when errbuf
+               (prettier-js--process-errors file-path program-errorfile errbuf))))
        (kill-buffer patchbuf)
        (delete-file errorfile)
        (delete-file bufferfile)
