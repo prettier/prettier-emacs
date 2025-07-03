@@ -16,6 +16,8 @@ which prettier
 
 If `prettier` is not installed already, you can install it using `npm install -g prettier` or via your package manager.
 
+Alternatively, if your project uses Prettier (i.e. it's a `devDependency` in your `package.json`), then you'll be able to use the executable installed via `npm install`, instead.
+
 ### Basic configuration
 
 First require the package:
@@ -36,6 +38,14 @@ Then you can hook into your favorite JavaScript mode:
 (add-hook 'js2-mode-hook 'prettier-js-mode)
 (add-hook 'web-mode-hook 'prettier-js-mode)
 ```
+
+You can also enable use of your project's Prettier (instead of the system one):
+
+```elisp
+(setq prettier-js-use-modules-bin t)
+```
+
+This uses `node_modules/.bin/prettier`. Make sure to run `npm install` from your project directory so that the command is available there.
 
 ### Prettier arguments
 
