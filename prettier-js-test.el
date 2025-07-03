@@ -5,6 +5,11 @@
 ;;; Commentary:
 ;; Tests for prettier-js.el
 
+;; These tests will fail unless node/npm are installed, as well as prettier and
+;; prettierd.  Run the following command to install those latter dependencies:
+
+;; npm install -g prettier @fsouza/prettierd
+
 ;;; Code:
 
 (require 'ert)
