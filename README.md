@@ -78,6 +78,26 @@ You can also enable use of your project's Prettier (instead of the system one):
 
 This uses `node_modules/.bin/prettier`. Make sure to run `npm install` from your project directory so that the command is available there.
 
+### Enable/disable per project
+
+Say that you only want to use Prettier with certain projects. Instead of configuring Emacs with `(add-hook 'some-mode-hook 'prettier-js-mode)`, you could check for the presence of a config file:
+
+```elisp
+(defun maybe-use-prettier ()
+  "Enable `prettier-js-mode' if an rc file is located."
+  (if (locate-dominating-file default-directory ".prettierrc")
+      (prettier-js-mode +1)))
+
+(add-hook 'typescript-mode-hook 'maybe-use-prettier)
+(add-hook 'js2-mode-hook 'maybe-use-prettier)
+```
+
+Alternatively, say that you want to use Prettier everywhere by default, except for when editing files in certain directories. Use `(add-hook 'some-mode-hook 'prettier-js-mode)`, and in directories where you want Prettier disabled, add a `.dir-locals.el` file with the following contents:
+
+```elisp
+((nil . ((eval . (prettier-js-mode 0)))))
+```
+
 ### Prettier arguments
 
 To adjust the CLI args used for the `prettier` command, you can customize the `prettier-js-args` variable:
