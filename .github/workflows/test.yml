@@ -51,8 +51,8 @@ jobs:
       with:
         node-version: '22.x'
 
-    - name: Install prettier
-      run: npm install -g prettier
+    - name: Install prettier executables
+      run: npm install -g prettier @fsouza/prettierd
 
     - name: Build
       run: |
