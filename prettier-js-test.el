@@ -147,5 +147,99 @@
     (let ((err (should-error (prettier-js) :type 'user-error)))
       (should (string-match-p "Buffer .* is not visiting a file" (cadr err))))))
 
+(ert-deftest prettier-js-test-executable-not-found ()
+  "Test that prettier-js signals an error when prettier executable is not found."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js"))
+         (prettier-js-command "non-existent-prettier-command")
+         (prettier-js-use-modules-bin nil))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Verify that the appropriate error is signaled with the correct message
+            (let ((err (should-error (prettier-js) :type 'user-error)))
+              (should (string= "Could not find prettier executable" (cadr err))))
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-node-modules-not-found ()
+  "Test that prettier-js signals an error when node_modules/.bin/prettier is not found."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (temp-dir (make-temp-file "prettier-test-dir-" t))
+         (temp-file (expand-file-name "test.js" temp-dir))
+         (default-directory temp-dir)
+         (prettier-js-use-modules-bin t))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Verify that the appropriate error is signaled with the correct message
+            (let ((err (should-error (prettier-js) :type 'user-error)))
+              (should (string= "Could not find node_modules/.bin/prettier executable" (cadr err))))
+            (kill-buffer)))
+
+      ;; Clean up temp directory
+      (when (file-exists-p temp-dir)
+        (delete-directory temp-dir t)))))
+
+(ert-deftest prettier-js-test-diff-not-found ()
+  "Test that prettier-js signals an error when diff executable is not found."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js"))
+         (prettier-js-diff-command "non-existent-diff-command"))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Verify that the appropriate error is signaled with the correct message
+            (let ((err (should-error (prettier-js) :type 'user-error)))
+              (should (string= "Could not find diff executable" (cadr err))))
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-diff-error ()
+  "Test that prettier-js signals an error when diff command returns an error exit code."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js"))
+         (orig-call-process-region (symbol-function 'call-process-region)))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Mock call-process-region to return error code 2 for diff
+          (cl-letf (((symbol-function 'call-process-region)
+                     (lambda (start end program &rest args)
+                       (if (string-match-p "diff$" program)
+                           2  ;; Return error code 2 for diff
+                         (apply orig-call-process-region start end program args)))))
+
+            ;; Visit the temp file
+            (with-current-buffer (find-file-noselect temp-file)
+              ;; Verify that the appropriate error is signaled with the correct message
+              (let ((err (should-error (prettier-js) :type 'user-error)))
+                (should (string= "Error calling diff; is GNU diff on your path?" (cadr err))))
+              (kill-buffer))))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
