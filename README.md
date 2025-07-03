@@ -8,6 +8,8 @@ This Emacs package provides a function, `prettier-js`, which formats the current
 
 ### Requirements
 
+#### Have prettier installed
+
 Ensure that the `prettier` program is installed:
 
 ```bash
@@ -17,6 +19,35 @@ which prettier
 If `prettier` is not installed already, you can install it using `npm install -g prettier` or via your package manager.
 
 Alternatively, if your project uses Prettier (i.e. it's a `devDependency` in your `package.json`), then you'll be able to use the executable installed via `npm install`, instead.
+
+#### Have diff installed
+
+This package uses the `diff` program under the hood to reliably identify formatting changes made by Prettier.  On macOS and GNU/Linux, `diff` should already be installed.  On other platforms, you should install/configure GNU's diff implementation.
+
+<details><summary><b>Windows</b></summary>
+
+  On Windows, install via [Chocolatey](https://chocolatey.org/):
+
+  1. Follow the Chocolatey install instructions: https://chocolatey.org/install
+  2. Open an Admin PowerShell session
+  3. Install the `diff` program: `choco install diffutils`
+
+  Also, make sure that the correct version of `diff` is accessible from your system path; sometimes, multiple conflicting `diff` executables may be installed.
+</details>
+
+<details><summary><b>BSD systems (OpenBSD, FreeBSD)</b></summary>
+
+  On BSD systems (like OpenBSD, FreeBSD), the default `diff` program may not support some GNU diff features that this package requires, such as `--strip-trailing-cr`. To resolve this:
+
+  1. Install GNU diff (often called `gdiff` or `gnudiff`):
+     - On OpenBSD: `pkg_add gdiff`
+     - On FreeBSD: `pkg install diffutils`
+  2. Configure this package to use the GNU diff implementation:
+     ```elisp
+     (setq prettier-js-diff-command "gdiff")
+     ```
+     (Use the appropriate command name for your system, which might be `gdiff`, `gnudiff`, or `gd`)
+</details>
 
 ### Basic configuration
 
@@ -78,30 +109,6 @@ And then hook into `web-mode` like this:
                             (enable-minor-mode
                              '("\\.jsx?\\'" . prettier-js-mode))))
 ```
-
-## Installing on Windows
-
-This package requires the `diff` tool which is already included on Unix platforms. The simplest way to install `diff` on Windows is to use [Chocolatey](https://chocolatey.org/). The steps are as follows:
-
-1. Follow the Chocolatey install instructions: https://chocolatey.org/install
-2. Open an Admin Powershell session
-3. Install the `diff` program: `choco install diffutils`
-
-You should now be able to open Emacs and successfully use this package.
-
-## BSD Users
-
-On BSD systems (like OpenBSD, FreeBSD), the default `diff` program may not support some GNU diff features that prettier-js requires, such as `--strip-trailing-cr`. To resolve this:
-
-1. Install GNU diff (often called `gdiff` or `gnudiff`):
-   - On OpenBSD: `pkg_add gdiff`
-   - On FreeBSD: `pkg install diffutils`
-
-2. Configure prettier-js to use the GNU diff implementation:
-   ```elisp
-   (setq prettier-js-diff-command "gdiff")
-   ```
-   (Use the appropriate command name for your system, which might be `gdiff`, `gnudiff`, or `gd`)
 
 ## Customization
 
