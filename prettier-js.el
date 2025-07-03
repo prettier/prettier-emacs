@@ -282,10 +282,18 @@ PATCHBUF is the buffer where the diff output will be written."
              (erase-buffer))
            (if (zerop (prettier-js--call-prettier bufferfile outputfile errorfile))
                (progn
-                 (prettier-js--call-diff outputfile patchbuf)
-                 (prettier-js--apply-rcs-patch patchbuf)
-                 (message "Applied prettier with args `%s'" prettier-js-args)
-                 (if errbuf (prettier-js--kill-error-buffer errbuf)))
+                 ;; GNU diff exit codes:
+                 ;; 0 - The files are identical (no differences).
+                 ;; 1 - The files are different (differences found).
+                 ;; 2 - Trouble occurred (e.g. invalid options).
+                 ;; 0/1 = success, 2 = problem
+                 (if (<= (prettier-js--call-diff outputfile patchbuf) 1)
+                     (progn
+                       (prettier-js--apply-rcs-patch patchbuf)
+                       (message "Applied prettier with args `%s'" prettier-js-args)
+                       (if errbuf (prettier-js--kill-error-buffer errbuf)))
+                   (setq prettier-js-error-state "Diff command had an issue")
+                   (user-error "Error calling diff; is GNU diff on your path?")))
              (message "Could not apply prettier")
              (if errbuf
                  (prettier-js--process-errors file-path errorfile errbuf))
