@@ -63,10 +63,10 @@ Or use `use-package` (available in Emacs 29.1 and above):
 (use-package prettier-js)
 ```
 
-Then you can hook into your favorite JavaScript mode:
+Then you can hook into any modes where you want to format with Prettier:
 
 ```elisp
-(add-hook 'js2-mode-hook 'prettier-js-mode)
+(add-hook 'js-mode-hook 'prettier-js-mode)
 (add-hook 'web-mode-hook 'prettier-js-mode)
 ```
 
@@ -88,8 +88,7 @@ Say that you only want to use Prettier with certain projects. Instead of configu
   (if (locate-dominating-file default-directory ".prettierrc")
       (prettier-js-mode +1)))
 
-(add-hook 'typescript-mode-hook 'maybe-use-prettier)
-(add-hook 'js2-mode-hook 'maybe-use-prettier)
+(add-hook 'js-mode-hook 'maybe-use-prettier)
 ```
 
 Alternatively, say that you want to use Prettier everywhere by default, except for when editing files in certain directories. Use `(add-hook 'some-mode-hook 'prettier-js-mode)`, and in directories where you want Prettier disabled, add a `.dir-locals.el` file with the following contents:
