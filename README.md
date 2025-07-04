@@ -4,6 +4,8 @@
 
 This Emacs package provides a function, `prettier-js-prettify`, which formats the current buffer using [Prettier](https://github.com/prettier/prettier). It also exports a minor mode, `prettier-js-mode`, which calls `prettier-js-prettify` on save.
 
+Despite the "-js" in its name, this package actually supports more than just JavaScript. It works with any language that Prettier supports! [List here.](https://prettier.io/docs/)
+
 ## Configuration
 
 ### Requirements

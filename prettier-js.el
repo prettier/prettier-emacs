@@ -1,4 +1,4 @@
-;;; prettier-js.el --- Minor mode to format JS code on file save  -*- lexical-binding: t; -*-
+;;; prettier-js.el --- Minor mode to format code on file save  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2014 The go-mode Authors. All rights reserved.
 ;; Portions Copyright (c) 2015-present, Facebook, Inc. All rights reserved.
@@ -39,7 +39,7 @@
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.)
 
 ;;; Commentary:
-;; Formats your JavaScript code using 'prettier' on file save.
+;; Formats your code using 'prettier' on file save.
 
 ;;; Code:
 
@@ -49,7 +49,7 @@
 (declare-function org-element-type "org-element-ast")
 
 (defgroup prettier-js nil
-  "Minor mode to format JS code on file save"
+  "Minor mode to format code on file save"
   :group 'languages
   :prefix "prettier-js"
   :link '(url-link :tag "Repository" "https://github.com/prettier/prettier"))
