@@ -43,6 +43,9 @@
 
 ;;; Code:
 
+(eval-when-compile
+  (require 'org-element))
+
 (defgroup prettier-js nil
   "Minor mode to format JS code on file save"
   :group 'languages
@@ -324,6 +327,36 @@ PATCHBUF is the buffer where the diff output will be written."
   (interactive)
   (when (region-active-p)
     (prettier-js--prettify (region-beginning) (region-end))))
+
+(defun prettier-js-prettify-code-block ()
+  "Format the current org-mode code block according to the prettier tool.
+Signal an error if not within a code block."
+  (interactive)
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in org-mode"))
+  (let ((element (org-element-at-point)))
+    ;; Like (org-in-src-block-p t):
+    (unless (and (org-element-type-p element 'src-block)
+                 (not (or (<= (line-beginning-position)
+                              (org-element-post-affiliated element))
+                          (>= (line-end-position)
+                              (org-with-point-at (org-element-end element)
+                                (skip-chars-backward " \t\n\r")
+                                (point))))))
+      (user-error "Not inside a source code block"))
+    (let* ((begin (org-element-property :begin element))
+           (end (org-element-property :end element))
+           (post-blank (org-element-property :post-blank element))
+           (contents-begin (save-excursion
+                             (goto-char begin)
+                             (forward-line 1)
+                             (point)))
+           (contents-end (save-excursion
+                           (goto-char end)
+                           (forward-line (- post-blank))
+                           (forward-line -1)
+                           (point))))
+      (prettier-js--prettify contents-begin contents-end))))
 
 (defvar prettier-js-mode-menu-map
   (let ((map (make-sparse-keymap "Prettier")))
