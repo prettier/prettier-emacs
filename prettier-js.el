@@ -232,14 +232,20 @@ Signals an error if the executable cannot be found."
     (setq prettier-js-error-state "Diff executable not found")
     (user-error "Could not find diff executable")))
 
+(defvar prettier-js-file-path nil
+  "Override file path for prettier.
+When non-nil, this path is used instead of the buffer's file path.")
+
 (defun prettier-js--file-path ()
   "Safely get the current buffer's file path, like function `buffer-file-name'."
-  ;; Support indirect buffers (created by `clone-indirect-buffer'):
-  (let ((file-path (buffer-file-name (buffer-base-buffer))))
-    ;; Return nil when buffer isn't visiting a file:
-    (when file-path
-      ;; Try to support editing remote files via TRAMP:
-      (or (file-remote-p file-path 'localname) file-path))))
+  (if prettier-js-file-path
+      prettier-js-file-path
+    ;; Support indirect buffers (created by `clone-indirect-buffer'):
+    (let ((file-path (buffer-file-name (buffer-base-buffer))))
+      ;; Return nil when buffer isn't visiting a file:
+      (when file-path
+        ;; Try to support editing remote files via TRAMP:
+        (or (file-remote-p file-path 'localname) file-path)))))
 
 (defun prettier-js--call-prettier (bufferfile outputfile errorfile)
   "Call prettier on BUFFERFILE, writing the result to OUTPUTFILE.
@@ -328,6 +334,27 @@ PATCHBUF is the buffer where the diff output will be written."
   (when (region-active-p)
     (prettier-js--prettify (region-beginning) (region-end))))
 
+(defvar prettier-js-language-to-extension
+  '(("js" . ".js")
+    ("javascript" . ".js")
+    ("ts" . ".ts")
+    ("typescript" . ".ts")
+    ("jsx" . ".jsx")
+    ("react" . ".jsx")
+    ("tsx" . ".tsx")
+    ("css" . ".css")
+    ("scss" . ".scss")
+    ("less" . ".less")
+    ("json" . ".json")
+    ("html" . ".html")
+    ("vue" . ".vue")
+    ("markdown" . ".md")
+    ("md" . ".md")
+    ("yaml" . ".yml")
+    ("yml" . ".yml")
+    ("graphql" . ".graphql"))
+  "Alist mapping org-mode language names to file extensions for prettier.")
+
 (defun prettier-js-prettify-code-block ()
   "Format the current org-mode code block according to the prettier tool.
 Signal an error if not within a code block."
@@ -355,7 +382,11 @@ Signal an error if not within a code block."
                            (goto-char end)
                            (forward-line (- post-blank))
                            (forward-line -1)
-                           (point))))
+                           (point)))
+           (lang (org-element-property :language element))
+           (ext (or (cdr (assoc lang prettier-js-language-to-extension))
+                    ".js"))         ; Default to js if language not recognized
+           (prettier-js-file-path (concat "temp" ext)))
       (prettier-js--prettify contents-begin contents-end))))
 
 (defvar prettier-js-mode-menu-map
