@@ -369,14 +369,14 @@ Signal an error if not in org-mode."
       (while (re-search-forward "^[ \t]*#\\+begin_src\\s-+\\([a-zA-Z0-9]+\\)" nil t)
         (let* ((lang (match-string-no-properties 1))
                (block-start (line-beginning-position)))
-          (when (assoc lang prettier-js-language-to-extension)
-            (when (re-search-forward "^[ \t]*#\\+end_src" nil t)
-              (let* ((block-end (line-end-position))
-                     (element (save-restriction
-                                (narrow-to-region block-start block-end)
-                                (org-element-at-point))))
-                (setq count (1+ count))
-                (prettier-js--format-code-block element))))))
+          (when (and (assoc lang prettier-js-language-to-extension)
+                     (re-search-forward "^[ \t]*#\\+end_src" nil t))
+            (let* ((block-end (line-end-position))
+                   (element (save-restriction
+                              (narrow-to-region block-start block-end)
+                              (org-element-at-point))))
+              (setq count (1+ count))
+              (prettier-js--format-code-block element)))))
       (message "Formatted %d code block%s" count (if (= count 1) "" "s")))))
 
 (defun prettier-js-prettify-code-block ()
@@ -412,10 +412,10 @@ Signal an error if not within a code block."
                          (forward-line -1)
                          (point)))
          (lang (org-element-property :language element))
-         (ext (or (cdr (assoc lang prettier-js-language-to-extension))
-                  ".js"))             ; Default to js if language not recognized
-         (prettier-js-file-path (concat "temp" ext)))
-    (prettier-js--prettify contents-begin contents-end)))
+         (ext (cdr (assoc lang prettier-js-language-to-extension))))
+    (when ext
+      (let ((prettier-js-file-path (concat "temp" ext)))
+        (prettier-js--prettify contents-begin contents-end)))))
 
 (defvar prettier-js-mode-menu-map
   (let ((map (make-sparse-keymap "Prettier")))

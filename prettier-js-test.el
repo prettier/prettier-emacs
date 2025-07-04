@@ -467,5 +467,62 @@
     (let ((err (should-error (prettier-js-prettify-code-blocks) :type 'user-error)))
       (should (string= "Not in org-mode" (cadr err))))))
 
+(ert-deftest prettier-js-test-unrecognizable-language-blocks ()
+  "Test that prettier-js-prettify-code-blocks skips unrecognizable language blocks."
+  (let* ((unrecognizable-file (expand-file-name "fixtures/unrecognizable.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy unrecognizable content to temp file
+          (copy-file unrecognizable-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Remember the original content
+            (let ((original-content (buffer-string)))
+              ;; Format all code blocks
+              (prettier-js-prettify-code-blocks)
+
+              ;; Verify the content hasn't changed after formatting all blocks
+              (should (string= (buffer-string) original-content)))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-unrecognizable-language-block ()
+  "Test that prettier-js-prettify-code-block skips unrecognizable language blocks."
+  (let* ((unrecognizable-file (expand-file-name "fixtures/unrecognizable.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy unrecognizable content to temp file
+          (copy-file unrecognizable-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Remember the original content
+            (let ((original-content (buffer-string)))
+              ;; Try to format the specific unrecognizable block
+              (goto-char (point-min))
+              (search-forward "#+BEGIN_SRC unrecognizable-language")
+              (forward-line 1)
+              (prettier-js-prettify-code-block)
+
+              ;; Verify the content hasn't changed after trying to format the specific block
+              (should (string= (buffer-string) original-content)))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
