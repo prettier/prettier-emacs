@@ -318,5 +318,48 @@
       (when (file-exists-p temp-dir)
         (delete-directory temp-dir t)))))
 
+(ert-deftest prettier-js-test-prettify-region ()
+  "Test that prettier-js-prettify-region correctly formats a region of JavaScript code."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (partial-clean-file (expand-file-name "fixtures/partial-clean.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js")))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Find the object declaration and format just that region
+            (goto-char (point-min))
+            (search-forward "const obj = {")
+            (beginning-of-line)
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "};")
+                         (point))))
+
+              ;; Set the region and format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (prettier-js-prettify-region)
+
+              ;; Get the expected partial clean content
+              (let ((expected-content
+                     (with-temp-buffer
+                       (insert-file-contents partial-clean-file)
+                       (buffer-string)))
+                    (actual-content (buffer-string)))
+
+                ;; Compare the formatted content with the expected partial clean content
+                (should (string= actual-content expected-content))))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
