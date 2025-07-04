@@ -13,6 +13,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'org)
 (require 'prettier-js)
 (require 'files)
 (require 'subr-x)
@@ -360,6 +361,68 @@
       ;; Clean up temp file
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-prettify-code-block ()
+  "Test that prettier-js-prettify-code-block correctly formats code blocks in org-mode."
+  (let* ((messy-file (expand-file-name "fixtures/messy.org"))
+         (clean-file (expand-file-name "fixtures/clean.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy messy content to temp file
+          (copy-file messy-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Format the JavaScript code block
+            (goto-char (point-min))
+            (search-forward "#+BEGIN_SRC js")
+            (forward-line 1)
+            (prettier-js-prettify-code-block)
+
+            ;; Format the TypeScript code block
+            (goto-char (point-min))
+            (search-forward "#+BEGIN_SRC typescript")
+            (forward-line 1)
+            (prettier-js-prettify-code-block)
+
+            ;; Get the expected clean content
+            (let ((expected-content
+                   (with-temp-buffer
+                     (insert-file-contents clean-file)
+                     (buffer-string)))
+                  (actual-content (buffer-string)))
+
+              ;; Compare the formatted content with the expected clean content
+              (should (string= actual-content expected-content)))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-prettify-code-block-not-in-org-mode ()
+  "Test that prettier-js-prettify-code-block signals an error when not in org-mode."
+  (with-temp-buffer
+    (insert "function test() { return 42; }")
+    (js-mode)
+
+    ;; Verify that the appropriate error is signaled with the correct message
+    (let ((err (should-error (prettier-js-prettify-code-block) :type 'user-error)))
+      (should (string= "Not in org-mode" (cadr err))))))
+
+(ert-deftest prettier-js-test-prettify-code-block-not-in-src-block ()
+  "Test that prettier-js-prettify-code-block signals an error when not in a source block."
+  (with-temp-buffer
+    (insert "#+TITLE: Test Org File\n\n* Heading\nSome regular text, not in a code block.")
+    (org-mode)
+
+    ;; Verify that the appropriate error is signaled with the correct message
+    (let ((err (should-error (prettier-js-prettify-code-block) :type 'user-error)))
+      (should (string= "Not inside a source code block" (cadr err))))))
 
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
