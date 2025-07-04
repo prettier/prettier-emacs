@@ -246,6 +246,39 @@
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
 
+(ert-deftest prettier-js-test-error-display ()
+  "Test that errors from prettier are displayed in the error buffer."
+  (let* ((syntax-error-file (expand-file-name "fixtures/syntax-error.js"))
+         (temp-dir (make-temp-file "prettier-test-dir-" t))
+         (temp-file (expand-file-name "syntax-error.js" temp-dir))
+         (prettier-js-command "prettier")
+         (prettier-js-show-errors 'buffer)
+         (default-directory temp-dir))
+    (unwind-protect
+        (progn
+          ;; Copy syntax error file to temp directory
+          (copy-file syntax-error-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Run prettier-js which should display the error
+            (prettier-js)
+
+            ;; Check that the error buffer exists and contains the error message
+            (let ((error-buffer (get-buffer "*prettier errors*")))
+              (should error-buffer)
+              (with-current-buffer error-buffer
+                (should (string-match-p "SyntaxError: Unexpected token" (buffer-string)))))
+
+            (kill-buffer)
+            ;; Clean up error buffer
+            (when-let ((buf (get-buffer "*prettier errors*")))
+              (kill-buffer buf))))
+
+      ;; Clean up temp directory
+      (when (file-exists-p temp-dir)
+        (delete-directory temp-dir t)))))
+
 (ert-deftest prettier-js-test-prettierd-error-display ()
   "Test that errors from prettierd are displayed in the error buffer."
   (let* ((syntax-error-file (expand-file-name "fixtures/syntax-error.js"))
