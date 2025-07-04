@@ -275,6 +275,12 @@
             (when-let ((buf (get-buffer "*prettier errors*")))
               (kill-buffer buf))))
 
+      ;; Stop prettierd daemon to ensure the temp directory can be deleted on
+      ;; Windows; I think prettierd "locks" the directory where it's started
+      (when (executable-find "prettierd")
+        (message "Stopping prettierd daemon...")
+        (call-process "prettierd" nil nil nil "stop"))
+
       ;; Clean up temp directory
       (when (file-exists-p temp-dir)
         (delete-directory temp-dir t)))))
