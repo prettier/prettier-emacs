@@ -336,7 +336,9 @@ PATCHBUF is the buffer where the diff output will be written."
   "Format the current region according to the prettier tool."
   (interactive)
   (when (region-active-p)
-    (prettier-js--prettify (region-beginning) (region-end))))
+    (if (derived-mode-p 'org-mode)
+        (prettier-js--prettify-org-region (region-beginning) (region-end))
+      (prettier-js--prettify (region-beginning) (region-end)))))
 
 (defvar prettier-js-language-to-extension
   '(("js" . ".js")
@@ -358,6 +360,45 @@ PATCHBUF is the buffer where the diff output will be written."
     ("yml" . ".yml")
     ("graphql" . ".graphql"))
   "Alist mapping org-mode language names to file extensions for prettier.")
+
+(defun prettier-js--prettify-org-region (start end)
+  "Format a region from START to END in an org-mode buffer.
+Validates that the region is within a single code block's contents."
+  (save-excursion
+    ;; Find the element at point to determine if we're in a src block
+    (goto-char start)
+    (let* ((element-at-start (org-element-at-point))
+           (element-type (org-element-type element-at-start)))
+
+      ;; Check if we're in a src block and the region is wholly inside it
+      (if (not (eq element-type 'src-block))
+          (user-error "Region is not wholly inside a source code block")
+
+        ;; Get the boundaries of the code block contents
+        (let* ((block-begin (org-element-property :begin element-at-start))
+               (block-end (org-element-property :end element-at-start))
+               (post-blank (org-element-property :post-blank element-at-start))
+               (contents-begin (save-excursion
+                                 (goto-char block-begin)
+                                 (forward-line 1)
+                                 (point)))
+               (contents-end (save-excursion
+                               (goto-char block-end)
+                               (forward-line (- post-blank))
+                               (forward-line -1)
+                               (point)))
+               (lang (org-element-property :language element-at-start))
+               (ext (cdr (assoc lang prettier-js-language-to-extension))))
+
+          ;; Check if end point is within the same code block
+          (when (or (< end contents-begin) (> end contents-end))
+            (user-error "Region is not wholly inside a source code block"))
+
+          ;; Check if we have a recognized language
+          (when ext
+            ;; Format the region with the appropriate file extension
+            (let ((prettier-js-file-path (concat "temp" ext)))
+              (prettier-js--prettify start end))))))))
 
 (defun prettier-js-prettify-code-blocks ()
   "Format all code blocks in the current org-mode buffer.

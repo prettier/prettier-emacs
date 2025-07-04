@@ -1,0 +1,28 @@
+#+TITLE: Test Org File with Code Blocks
+
+* JavaScript Code Block
+#+BEGIN_SRC js
+function messy(a,b)
+{
+return a+b;
+}
+
+const obj = {
+  foo: "bar",
+  baz: 42,
+  qux: "hello",
+};
+#+END_SRC
+
+* TypeScript Code Block
+#+BEGIN_SRC typescript
+interface Person {
+  name: string;
+  age: number;
+}
+
+function greet(person:Person)
+{
+  return "Hello, "+person.name;
+}
+#+END_SRC
