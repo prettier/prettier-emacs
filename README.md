@@ -141,6 +141,12 @@ If you want to mostly eliminate the overhead of running the `prettier` command o
 
 Note that this may come at the expense of a bit more complexity in terms of configuring/managing the daemon.
 
+## Available commands
+
+* `M-x prettier-js-prettify` formats the current buffer.  In `org-mode`, it formats all the code blocks in the buffer.
+* `M-x prettier-js-prettify-region` formats the current region
+* `M-x prettier-js-prettify-code-block` formats the code block at point (in `org-mode`)
+
 ## Customization
 
 This package is customizable via Emacs' easy customization interface:
