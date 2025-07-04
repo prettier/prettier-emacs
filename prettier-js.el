@@ -391,7 +391,7 @@ Signal an error if not within a code block."
     ;; Like (org-in-src-block-p t):
     (unless (and (eq (org-element-type element) 'src-block)
                  (not (or (<= (line-beginning-position)
-                              (org-element-post-affiliated element))
+                              (org-element-property :post-affiliated element))
                           (>= (line-end-position)
                               (org-with-point-at (org-element-end element)
                                 (skip-chars-backward " \t\n\r")
