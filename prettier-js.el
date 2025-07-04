@@ -360,6 +360,7 @@ Adds an error item at the top of the menu if there is an error state."
   "Menu for Prettier mode"
   '("Prettier" :filter prettier-js--menu-filter
     ["Format buffer" prettier-js-prettify t]
+    ["Format region" prettier-js-prettify-region (region-active-p)]
     "---"
     ["Turn off minor mode" prettier-js-mode :visible prettier-js-mode]
     ["Help for minor mode" (describe-function 'prettier-js-mode) t]))
