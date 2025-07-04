@@ -429,15 +429,8 @@ Signal an error if not within a code block."
   (unless (derived-mode-p 'org-mode)
     (user-error "Not in org-mode"))
   (let ((element (org-element-at-point)))
-    ;; Like (org-in-src-block-p t):
-    (unless (and (eq (org-element-type element) 'src-block)
-                 (not (or (<= (line-beginning-position)
-                              (org-element-property :post-affiliated element))
-                          (>= (line-end-position)
-                              (org-with-point-at (org-element-property :end element)
-                                (skip-chars-backward " \t\n\r")
-                                (point))))))
-      (user-error "Not inside a source code block"))
+    (unless (eq (org-element-type element) 'src-block)
+      (user-error "No source code block at point"))
     (prettier-js--format-code-block element)))
 
 (defun prettier-js--format-code-block (element)
