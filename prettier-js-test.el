@@ -523,5 +523,63 @@
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
 
+(ert-deftest prettier-js-test-prettify-org-region ()
+  "Test that prettier-js-prettify-region correctly formats regions in org-mode files."
+  (let* ((messy-file (expand-file-name "fixtures/messy.org"))
+         (partial-clean-file (expand-file-name "fixtures/partial-clean.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy messy content to temp file
+          (copy-file messy-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Format the JavaScript object region
+            (goto-char (point-min))
+            (search-forward "const obj = {")
+            (beginning-of-line)
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "};")
+                         (point))))
+              ;; Set the region and format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (prettier-js-prettify-region))
+
+            ;; Format the TypeScript interface region
+            (goto-char (point-min))
+            (search-forward "interface Person")
+            (beginning-of-line)
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "}")
+                         (point))))
+              ;; Set the region and format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (prettier-js-prettify-region))
+
+            ;; Get the expected partial clean content
+            (let ((expected-content
+                   (with-temp-buffer
+                     (insert-file-contents partial-clean-file)
+                     (buffer-string)))
+                  (actual-content (buffer-string)))
+
+              ;; Compare the formatted content with the expected partial clean content
+              (should (string= actual-content expected-content)))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
