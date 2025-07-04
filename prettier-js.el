@@ -322,7 +322,8 @@ PATCHBUF is the buffer where the diff output will be written."
 (defun prettier-js-prettify-region ()
   "Format the current region according to the prettier tool."
   (interactive)
-  (prettier-js--prettify (region-beginning) (region-end)))
+  (when (region-active-p)
+    (prettier-js--prettify (region-beginning) (region-end))))
 
 (defvar prettier-js-mode-menu-map
   (let ((map (make-sparse-keymap "Prettier")))
