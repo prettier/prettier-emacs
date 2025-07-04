@@ -103,7 +103,7 @@ When non-nil, contains the error message to display.")
   (goto-char (point-min))
     (forward-line (1- line)))
 
-(defun prettier-js--apply-rcs-patch (patch-buffer)
+(defun prettier-js--apply-rcs-patch (patch-buffer &optional start)
   "Apply an RCS-formatted diff from PATCH-BUFFER to the current buffer."
   (let ((target-buffer (current-buffer))
         ;; Relative offset between buffer line numbers and line numbers
@@ -116,7 +116,7 @@ When non-nil, contains the error message to display.")
         ;; Appending lines decrements the offset (possibly making it
         ;; negative), deleting lines increments it. This order
         ;; simplifies the forward-line invocations.
-        (line-offset 0))
+        (line-offset (if start (* (- (line-number-at-pos start) 1) -1) 0)))
     (save-excursion
       (with-current-buffer patch-buffer
         (goto-char (point-min))
@@ -249,17 +249,17 @@ Returns the exit code from prettier."
            prettier-cmd bufferfile (list (list :file outputfile) errorfile)
            nil (append prettier-js-args width-args (list "--stdin-filepath" file-path)))))
 
-(defun prettier-js--call-diff (outputfile patchbuf)
+(defun prettier-js--call-diff (outputfile patchbuf &optional start end)
   "Call diff command to generate patch between current buffer and OUTPUTFILE.
 PATCHBUF is the buffer where the diff output will be written."
-  (let ((diff-cmd (prettier-js--get-diff-command)))
-    (call-process-region (point-min) (point-max) diff-cmd nil patchbuf nil
+  (let ((start-point (or start (point-min)))
+        (end-point (or end (point-max)))
+        (diff-cmd (prettier-js--get-diff-command)))
+    (call-process-region start-point end-point diff-cmd nil patchbuf nil
                          "-n" "--strip-trailing-cr" "-" outputfile)))
 
-;;;###autoload
-(defun prettier-js ()
-   "Format the current buffer according to the prettier tool."
-   (interactive)
+(defun prettier-js--prettify (&optional start end)
+   "Format content in the current buffer from START to END."
    (let* ((file-path
            (or (prettier-js--file-path)
                (user-error "Buffer `%s' is not visiting a file" (buffer-name))))
@@ -280,7 +280,7 @@ PATCHBUF is the buffer where the diff output will be written."
      (unwind-protect
          (save-restriction
            (widen)
-           (write-region nil nil bufferfile)
+           (write-region start end bufferfile)
            (if errbuf
                (with-current-buffer errbuf
                  (setq buffer-read-only nil)
@@ -294,9 +294,9 @@ PATCHBUF is the buffer where the diff output will be written."
                  ;; 1 - The files are different (differences found).
                  ;; 2 - Trouble occurred (e.g. invalid options).
                  ;; 0/1 = success, 2 = problem
-                 (if (<= (prettier-js--call-diff outputfile patchbuf) 1)
+                 (if (<= (prettier-js--call-diff outputfile patchbuf start end) 1)
                      (progn
-                       (prettier-js--apply-rcs-patch patchbuf)
+                       (prettier-js--apply-rcs-patch patchbuf start)
                        (message "Applied prettier with args `%s'" prettier-js-args)
                        (if errbuf (prettier-js--kill-error-buffer errbuf)))
                    (setq prettier-js-error-state "Diff command had an issue")
@@ -308,6 +308,22 @@ PATCHBUF is the buffer where the diff output will be written."
        (delete-file errorfile)
        (delete-file bufferfile)
        (delete-file outputfile))))
+
+;;;###autoload
+(defalias 'prettier-js 'prettier-js-prettify)
+
+;;;###autoload
+(defun prettier-js-prettify ()
+  "Format the current buffer according to the prettier tool."
+  (interactive)
+  (prettier-js--prettify))
+
+;;;###autoload
+(defun prettier-js-prettify-region ()
+  "Format the current region according to the prettier tool."
+  (interactive)
+  (when (region-active-p)
+    (prettier-js--prettify (region-beginning) (region-end))))
 
 (defvar prettier-js-mode-menu-map
   (let ((map (make-sparse-keymap "Prettier")))
@@ -344,7 +360,8 @@ Adds an error item at the top of the menu if there is an error state."
 (easy-menu-define prettier-js-mode-menu prettier-js-mode-menu-map
   "Menu for Prettier mode"
   '("Prettier" :filter prettier-js--menu-filter
-    ["Format buffer" prettier-js t]
+    ["Format buffer" prettier-js-prettify t]
+    ["Format region" prettier-js-prettify-region (region-active-p)]
     "---"
     ["Turn off minor mode" prettier-js-mode :visible prettier-js-mode]
     ["Help for minor mode" (describe-function 'prettier-js-mode) t]))
@@ -356,8 +373,8 @@ Adds an error item at the top of the menu if there is an error state."
   :global nil
   :keymap prettier-js-mode-menu-map
   (if prettier-js-mode
-      (add-hook 'before-save-hook 'prettier-js nil 'local)
-    (remove-hook 'before-save-hook 'prettier-js 'local)))
+      (add-hook 'before-save-hook 'prettier-js-prettify nil 'local)
+    (remove-hook 'before-save-hook 'prettier-js-prettify 'local)))
 
 (provide 'prettier-js)
 ;;; prettier-js.el ends here
