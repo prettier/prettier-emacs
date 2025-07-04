@@ -46,6 +46,8 @@
 (eval-when-compile
   (require 'org-element))
 
+(declare-function org-element-type "org-element-ast")
+
 (defgroup prettier-js nil
   "Minor mode to format JS code on file save"
   :group 'languages
@@ -387,7 +389,7 @@ Signal an error if not within a code block."
     (user-error "Not in org-mode"))
   (let ((element (org-element-at-point)))
     ;; Like (org-in-src-block-p t):
-    (unless (and (org-element-type-p element 'src-block)
+    (unless (and (eq (org-element-type element) 'src-block)
                  (not (or (<= (line-beginning-position)
                               (org-element-post-affiliated element))
                           (>= (line-end-position)
