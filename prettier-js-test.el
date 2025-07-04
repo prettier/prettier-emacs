@@ -13,7 +13,6 @@
 ;;; Code:
 
 (require 'ert)
-(require 'org)
 (require 'prettier-js)
 (require 'files)
 (require 'subr-x)
