@@ -581,5 +581,71 @@
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
 
+(ert-deftest prettier-js-test-prettify-org-region-validation ()
+  "Test that prettier-js-prettify-region validates regions in org-mode files."
+  (let* ((messy-file (expand-file-name "fixtures/messy.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy messy content to temp file
+          (copy-file messy-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Test case 1: Region start outside a code block
+            (goto-char (point-min))
+            (search-forward "* JavaScript Code Block")
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "#+BEGIN_SRC js")
+                         (forward-line 2)
+                         (point))))
+              ;; Set the region and try to format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
+                (should (string= "Region start is not inside a source code block" (cadr err)))))
+
+            ;; Test case 2: Region end outside the code block
+            (goto-char (point-min))
+            (search-forward "#+BEGIN_SRC js")
+            (forward-line 1)
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "#+END_SRC")
+                         (forward-line 1)
+                         (point))))
+              ;; Set the region and try to format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
+                (should (string= "Region end is outside the source code block" (cadr err)))))
+
+            ;; Test case 3: Region spans multiple code blocks
+            (goto-char (point-min))
+            (search-forward "#+BEGIN_SRC js")
+            (forward-line 1)
+            (let ((start (point))
+                  (end (progn
+                         (search-forward "#+BEGIN_SRC typescript")
+                         (forward-line 2)
+                         (point))))
+              ;; Set the region and try to format it
+              (push-mark start)
+              (goto-char end)
+              (activate-mark)
+              (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
+                (should (string= "Region end is outside the source code block" (cadr err)))))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
