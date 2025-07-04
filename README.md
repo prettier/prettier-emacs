@@ -130,6 +130,16 @@ And then hook into `web-mode` like this:
                              '("\\.jsx?\\'" . prettier-js-mode))))
 ```
 
+### Usage with prettierd
+
+If you want to mostly eliminate the overhead of running the `prettier` command on every file save (improving performance slightly), you could try using [`prettierd`](https://github.com/fsouza/prettierd) to run Prettier as a daemon.
+
+```elisp
+(setq prettier-js-command "prettierd")
+```
+
+Note that this may come at the expense of a bit more complexity in terms of configuring/managing the daemon.
+
 ## Customization
 
 This package is customizable via Emacs' easy customization interface:

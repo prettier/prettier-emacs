@@ -5,6 +5,11 @@
 ;;; Commentary:
 ;; Tests for prettier-js.el
 
+;; These tests will fail unless node/npm are installed, as well as prettier and
+;; prettierd.  Run the following command to install those latter dependencies:
+
+;; npm install -g prettier @fsouza/prettierd
+
 ;;; Code:
 
 (require 'ert)
@@ -240,6 +245,78 @@
       ;; Clean up temp file
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-error-display ()
+  "Test that errors from prettier are displayed in the error buffer."
+  (let* ((syntax-error-file (expand-file-name "fixtures/syntax-error.js"))
+         (temp-dir (make-temp-file "prettier-test-dir-" t))
+         (temp-file (expand-file-name "syntax-error.js" temp-dir))
+         (prettier-js-command "prettier")
+         (prettier-js-show-errors 'buffer)
+         (default-directory temp-dir))
+    (unwind-protect
+        (progn
+          ;; Copy syntax error file to temp directory
+          (copy-file syntax-error-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Run prettier-js which should display the error
+            (prettier-js)
+
+            ;; Check that the error buffer exists and contains the error message
+            (let ((error-buffer (get-buffer "*prettier errors*")))
+              (should error-buffer)
+              (with-current-buffer error-buffer
+                (should (string-match-p "SyntaxError: Unexpected token" (buffer-string)))))
+
+            (kill-buffer)
+            ;; Clean up error buffer
+            (when-let ((buf (get-buffer "*prettier errors*")))
+              (kill-buffer buf))))
+
+      ;; Clean up temp directory
+      (when (file-exists-p temp-dir)
+        (delete-directory temp-dir t)))))
+
+(ert-deftest prettier-js-test-prettierd-error-display ()
+  "Test that errors from prettierd are displayed in the error buffer."
+  (let* ((syntax-error-file (expand-file-name "fixtures/syntax-error.js"))
+         (temp-dir (make-temp-file "prettier-test-dir-" t))
+         (temp-file (expand-file-name "syntax-error.js" temp-dir))
+         (prettier-js-command "prettierd")
+         (prettier-js-show-errors 'buffer)
+         (default-directory temp-dir))
+    (unwind-protect
+        (progn
+          ;; Copy syntax error file to temp directory
+          (copy-file syntax-error-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            ;; Run prettier-js which should display the error
+            (prettier-js)
+
+            ;; Check that the error buffer exists and contains the error message
+            (let ((error-buffer (get-buffer "*prettier errors*")))
+              (should error-buffer)
+              (with-current-buffer error-buffer
+                (should (string-match-p "SyntaxError: Unexpected token" (buffer-string)))))
+
+            (kill-buffer)
+            ;; Clean up error buffer
+            (when-let ((buf (get-buffer "*prettier errors*")))
+              (kill-buffer buf))))
+
+      ;; Stop prettierd daemon to ensure the temp directory can be deleted on
+      ;; Windows; I think prettierd "locks" the directory where it's started
+      (when (executable-find "prettierd")
+        (message "Stopping prettierd daemon...")
+        (call-process "prettierd" nil nil nil "stop"))
+
+      ;; Clean up temp directory
+      (when (file-exists-p temp-dir)
+        (delete-directory temp-dir t)))))
 
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
