@@ -325,7 +325,9 @@ PATCHBUF is the buffer where the diff output will be written."
 (defun prettier-js-prettify ()
   "Format the current buffer according to the prettier tool."
   (interactive)
-  (prettier-js--prettify))
+  (if (derived-mode-p 'org-mode)
+      (prettier-js-prettify-code-blocks)
+    (prettier-js--prettify)))
 
 ;;;###autoload
 (defun prettier-js-prettify-region ()
@@ -355,6 +357,28 @@ PATCHBUF is the buffer where the diff output will be written."
     ("graphql" . ".graphql"))
   "Alist mapping org-mode language names to file extensions for prettier.")
 
+(defun prettier-js-prettify-code-blocks ()
+  "Format all code blocks in the current org-mode buffer.
+Signal an error if not in org-mode."
+  (interactive)
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in org-mode"))
+  (save-excursion
+    (goto-char (point-min))
+    (let ((count 0))
+      (while (re-search-forward "^[ \t]*#\\+begin_src\\s-+\\([a-zA-Z0-9]+\\)" nil t)
+        (let* ((lang (match-string-no-properties 1))
+               (block-start (line-beginning-position)))
+          (when (assoc lang prettier-js-language-to-extension)
+            (when (re-search-forward "^[ \t]*#\\+end_src" nil t)
+              (let* ((block-end (line-end-position))
+                     (element (save-restriction
+                                (narrow-to-region block-start block-end)
+                                (org-element-at-point))))
+                (setq count (1+ count))
+                (prettier-js--format-code-block element))))))
+      (message "Formatted %d code block%s" count (if (= count 1) "" "s")))))
+
 (defun prettier-js-prettify-code-block ()
   "Format the current org-mode code block according to the prettier tool.
 Signal an error if not within a code block."
@@ -371,23 +395,27 @@ Signal an error if not within a code block."
                                 (skip-chars-backward " \t\n\r")
                                 (point))))))
       (user-error "Not inside a source code block"))
-    (let* ((begin (org-element-property :begin element))
-           (end (org-element-property :end element))
-           (post-blank (org-element-property :post-blank element))
-           (contents-begin (save-excursion
-                             (goto-char begin)
-                             (forward-line 1)
-                             (point)))
-           (contents-end (save-excursion
-                           (goto-char end)
-                           (forward-line (- post-blank))
-                           (forward-line -1)
+    (prettier-js--format-code-block element)))
+
+(defun prettier-js--format-code-block (element)
+  "Format a single org-mode code block specified by ELEMENT."
+  (let* ((begin (org-element-property :begin element))
+         (end (org-element-property :end element))
+         (post-blank (org-element-property :post-blank element))
+         (contents-begin (save-excursion
+                           (goto-char begin)
+                           (forward-line 1)
                            (point)))
-           (lang (org-element-property :language element))
-           (ext (or (cdr (assoc lang prettier-js-language-to-extension))
-                    ".js"))         ; Default to js if language not recognized
-           (prettier-js-file-path (concat "temp" ext)))
-      (prettier-js--prettify contents-begin contents-end))))
+         (contents-end (save-excursion
+                         (goto-char end)
+                         (forward-line (- post-blank))
+                         (forward-line -1)
+                         (point)))
+         (lang (org-element-property :language element))
+         (ext (or (cdr (assoc lang prettier-js-language-to-extension))
+                  ".js"))             ; Default to js if language not recognized
+         (prettier-js-file-path (concat "temp" ext)))
+    (prettier-js--prettify contents-begin contents-end)))
 
 (defvar prettier-js-mode-menu-map
   (let ((map (make-sparse-keymap "Prettier")))

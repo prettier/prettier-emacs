@@ -424,5 +424,48 @@
     (let ((err (should-error (prettier-js-prettify-code-block) :type 'user-error)))
       (should (string= "Not inside a source code block" (cadr err))))))
 
+(ert-deftest prettier-js-test-prettify-code-blocks ()
+  "Test that prettier-js-prettify-code-blocks formats all code blocks in an org file."
+  (let* ((messy-file (expand-file-name "fixtures/messy.org"))
+         (clean-file (expand-file-name "fixtures/clean.org"))
+         (temp-file (make-temp-file "prettier-test-" nil ".org")))
+    (unwind-protect
+        (progn
+          ;; Copy messy content to temp file
+          (copy-file messy-file temp-file t)
+
+          ;; Visit the temp file
+          (with-current-buffer (find-file-noselect temp-file)
+            (org-mode)
+
+            ;; Format all code blocks at once
+            (prettier-js-prettify-code-blocks)
+
+            ;; Get the expected clean content
+            (let ((expected-content
+                   (with-temp-buffer
+                     (insert-file-contents clean-file)
+                     (buffer-string)))
+                  (actual-content (buffer-string)))
+
+              ;; Compare the formatted content with the expected clean content
+              (should (string= actual-content expected-content)))
+
+            (kill-buffer)))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
+(ert-deftest prettier-js-test-prettify-code-blocks-not-in-org-mode ()
+  "Test that prettier-js-prettify-code-blocks signals an error when not in org-mode."
+  (with-temp-buffer
+    (insert "function test() { return 42; }")
+    (js-mode)
+
+    ;; Verify that the appropriate error is signaled with the correct message
+    (let ((err (should-error (prettier-js-prettify-code-blocks) :type 'user-error)))
+      (should (string= "Not in org-mode" (cadr err))))))
+
 (provide 'prettier-js-test)
 ;;; prettier-js-test.el ends here
