@@ -51,7 +51,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Format the buffer
-            (prettier-js)
+            (prettier-js-prettify)
 
             ;; Get the expected clean content
             (let ((expected-content
@@ -88,7 +88,7 @@
           ;; Visit the messy file
           (with-current-buffer (find-file-noselect temp-src-file)
             ;; Format the buffer using node_modules/.bin/prettier
-            (prettier-js)
+            (prettier-js-prettify)
 
             ;; Get the expected clean content
             (let ((expected-content
@@ -122,7 +122,7 @@
 
             ;; Switch to the indirect buffer and format it
             (with-current-buffer indirect-buffer
-              (prettier-js)
+              (prettier-js-prettify)
 
               ;; Get the expected clean content
               (let ((expected-content
@@ -149,7 +149,7 @@
     (js-mode)
 
     ;; Verify that the appropriate error is signaled with the correct message
-    (let ((err (should-error (prettier-js) :type 'user-error)))
+    (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
       (should (string-match-p "Buffer .* is not visiting a file" (cadr err))))))
 
 (ert-deftest prettier-js-test-executable-not-found ()
@@ -166,7 +166,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Verify that the appropriate error is signaled with the correct message
-            (let ((err (should-error (prettier-js) :type 'user-error)))
+            (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
               (should (string= "Could not find prettier executable" (cadr err))))
             (kill-buffer)))
 
@@ -189,7 +189,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Verify that the appropriate error is signaled with the correct message
-            (let ((err (should-error (prettier-js) :type 'user-error)))
+            (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
               (should (string= "Could not find node_modules/.bin/prettier executable" (cadr err))))
             (kill-buffer)))
 
@@ -210,7 +210,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Verify that the appropriate error is signaled with the correct message
-            (let ((err (should-error (prettier-js) :type 'user-error)))
+            (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
               (should (string= "Could not find diff executable" (cadr err))))
             (kill-buffer)))
 
@@ -238,7 +238,7 @@
             ;; Visit the temp file
             (with-current-buffer (find-file-noselect temp-file)
               ;; Verify that the appropriate error is signaled with the correct message
-              (let ((err (should-error (prettier-js) :type 'user-error)))
+              (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
                 (should (string= "Error calling diff; is GNU diff on your path?" (cadr err))))
               (kill-buffer))))
 
@@ -262,7 +262,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Run prettier-js which should display the error
-            (prettier-js)
+            (prettier-js-prettify)
 
             ;; Check that the error buffer exists and contains the error message
             (let ((error-buffer (get-buffer "*prettier errors*")))
@@ -295,7 +295,7 @@
           ;; Visit the temp file
           (with-current-buffer (find-file-noselect temp-file)
             ;; Run prettier-js which should display the error
-            (prettier-js)
+            (prettier-js-prettify)
 
             ;; Check that the error buffer exists and contains the error message
             (let ((error-buffer (get-buffer "*prettier errors*")))
