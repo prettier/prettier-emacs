@@ -1,0 +1,96 @@
+#+TITLE: Test All Supported Languages
+#+AUTHOR: Prettier.js
+#+DATE: 2025-07-03
+
+* JavaScript
+#+BEGIN_SRC js
+function messy(a,b){return a+b;}
+const obj = { foo: "bar",baz: 42 };
+if(true){console.log("hello world");}
+#+END_SRC
+
+* TypeScript
+#+BEGIN_SRC ts
+function messy(a:number,b:number):number{return a+b;}
+const obj = { foo: "bar",baz: 42 };
+interface Person{name:string;age:number;}
+#+END_SRC
+
+* JSX
+#+BEGIN_SRC jsx
+function Component(){return(<div className="container"><h1>Hello,World!</h1><p>This is a paragraph.</p></div>);}
+#+END_SRC
+
+* TSX
+#+BEGIN_SRC tsx
+function Component():JSX.Element{return(<div className="container"><h1>Hello,World!</h1><p>This is a paragraph.</p></div>);}
+#+END_SRC
+
+* CSS
+#+BEGIN_SRC css
+.container{width:100%;max-width:1200px;margin:0 auto;padding:0 15px;}
+h1{font-size:2rem;color:#333;margin-bottom:1rem;}
+#+END_SRC
+
+* SCSS
+#+BEGIN_SRC scss
+$primary-color:#333;.container{width:100%;max-width:1200px;margin:0 auto;padding:0 15px;h1{font-size:2rem;color:$primary-color;margin-bottom:1rem;}}
+#+END_SRC
+
+* LESS
+#+BEGIN_SRC less
+@primary-color:#333;.container{width:100%;max-width:1200px;margin:0 auto;padding:0 15px;h1{font-size:2rem;color:@primary-color;margin-bottom:1rem;}}
+#+END_SRC
+
+* JSON
+#+BEGIN_SRC json
+{"name":"John Doe","age":30,"isActive":true,"address":{"street":"123 Main St","city":"Anytown","zip":"12345"},"hobbies":["reading","coding","hiking"]}
+#+END_SRC
+
+* HTML
+#+BEGIN_SRC html
+<!DOCTYPE html><html><head><title>Test</title></head><body><div class="container"><h1>Hello, World!</h1><p>This is a paragraph.</p></div></body></html>
+#+END_SRC
+
+* Vue
+#+BEGIN_SRC vue
+<template><div class="container"><h1>{{ title }}</h1><p>{{ message }}</p></div></template><script>export default{data(){return{title:"Hello, World!",message:"This is a Vue component"}}}</script><style>.container{width:100%;max-width:1200px;margin:0 auto;}</style>
+#+END_SRC
+
+* Markdown
+#+BEGIN_SRC markdown
+# Hello World
+
+This is a paragraph with *italic* and **bold** text.
+
+- Item 1
+-  Item 2
+-    Item 3
+
+```js
+function example(){console.log("This is a code block");}
+```
+#+END_SRC
+
+* YAML
+#+BEGIN_SRC yaml
+name:    John Doe
+age: 30
+isActive:    true
+address: {street: "123 Main St", city:    "Anytown",
+  zip:   "12345"}
+hobbies: [    "reading","coding",     "hiking"   ]
+#+END_SRC
+
+* GraphQL
+#+BEGIN_SRC graphql
+query GetUser{user(id:"123"){id name email posts{id title content}}}
+mutation CreatePost{createPost(title:"Hello",content:"World"){id title content}}
+#+END_SRC
+
+* Unrecognizable Language (for comparison)
+#+BEGIN_SRC unrecognizable-language
+function messy(a,b) { return a+b; }
+const obj = { foo: "bar", baz: 42 };
+if(true) { console.log("hello world"); }
+#+END_SRC
