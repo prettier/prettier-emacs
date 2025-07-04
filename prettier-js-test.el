@@ -607,7 +607,7 @@
               (goto-char end)
               (activate-mark)
               (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
-                (should (string= "Region start is not inside a source code block" (cadr err)))))
+                (should (string= "Region is not wholly inside a source code block" (cadr err)))))
 
             ;; Test case 2: Region end outside the code block
             (goto-char (point-min))
@@ -623,7 +623,7 @@
               (goto-char end)
               (activate-mark)
               (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
-                (should (string= "Region end is outside the source code block" (cadr err)))))
+                (should (string= "Region is not wholly inside a source code block" (cadr err)))))
 
             ;; Test case 3: Region spans multiple code blocks
             (goto-char (point-min))
@@ -639,7 +639,7 @@
               (goto-char end)
               (activate-mark)
               (let ((err (should-error (prettier-js-prettify-region) :type 'user-error)))
-                (should (string= "Region end is outside the source code block" (cadr err)))))
+                (should (string= "Region is not wholly inside a source code block" (cadr err)))))
 
             (kill-buffer)))
 

@@ -370,9 +370,9 @@ Validates that the region is within a single code block's contents."
     (let* ((element-at-start (org-element-at-point))
            (element-type (org-element-type element-at-start)))
 
-      ;; Check if we're in a src block
+      ;; Check if we're in a src block and the region is wholly inside it
       (if (not (eq element-type 'src-block))
-          (user-error "Region start is not inside a source code block")
+          (user-error "Region is not wholly inside a source code block")
 
         ;; Get the boundaries of the code block contents
         (let* ((block-begin (org-element-property :begin element-at-start))
@@ -392,7 +392,7 @@ Validates that the region is within a single code block's contents."
 
           ;; Check if end point is within the same code block
           (when (or (< end contents-begin) (> end contents-end))
-            (user-error "Region end is outside the source code block"))
+            (user-error "Region is not wholly inside a source code block"))
 
           ;; Check if we have a recognized language
           (when ext
