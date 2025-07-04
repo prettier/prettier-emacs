@@ -393,7 +393,7 @@ Signal an error if not within a code block."
                  (not (or (<= (line-beginning-position)
                               (org-element-property :post-affiliated element))
                           (>= (line-end-position)
-                              (org-with-point-at (org-element-end element)
+                              (org-with-point-at (org-element-property :end element)
                                 (skip-chars-backward " \t\n\r")
                                 (point))))))
       (user-error "Not inside a source code block"))
