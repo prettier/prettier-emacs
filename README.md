@@ -4,6 +4,8 @@
 
 This Emacs package provides a function, `prettier-js-prettify`, which formats the current buffer using [Prettier](https://github.com/prettier/prettier). It also exports a minor mode, `prettier-js-mode`, which calls `prettier-js-prettify` on save.
 
+Despite the "-js" in its name, this package actually supports more than just JavaScript. It works with any language that Prettier supports! [List here.](https://prettier.io/docs/)
+
 ## Configuration
 
 ### Requirements
@@ -63,10 +65,10 @@ Or use `use-package` (available in Emacs 29.1 and above):
 (use-package prettier-js)
 ```
 
-Then you can hook into your favorite JavaScript mode:
+Then you can hook into any modes where you want to format with Prettier:
 
 ```elisp
-(add-hook 'js2-mode-hook 'prettier-js-mode)
+(add-hook 'js-mode-hook 'prettier-js-mode)
 (add-hook 'web-mode-hook 'prettier-js-mode)
 ```
 
@@ -88,8 +90,7 @@ Say that you only want to use Prettier with certain projects. Instead of configu
   (if (locate-dominating-file default-directory ".prettierrc")
       (prettier-js-mode +1)))
 
-(add-hook 'typescript-mode-hook 'maybe-use-prettier)
-(add-hook 'js2-mode-hook 'maybe-use-prettier)
+(add-hook 'js-mode-hook 'maybe-use-prettier)
 ```
 
 Alternatively, say that you want to use Prettier everywhere by default, except for when editing files in certain directories. Use `(add-hook 'some-mode-hook 'prettier-js-mode)`, and in directories where you want Prettier disabled, add a `.dir-locals.el` file with the following contents:
@@ -139,6 +140,12 @@ If you want to mostly eliminate the overhead of running the `prettier` command o
 ```
 
 Note that this may come at the expense of a bit more complexity in terms of configuring/managing the daemon.
+
+## Available commands
+
+* `M-x prettier-js-prettify` formats the current buffer.  In `org-mode`, it formats all the code blocks in the buffer.
+* `M-x prettier-js-prettify-region` formats the current region
+* `M-x prettier-js-prettify-code-block` formats the code block at point (in `org-mode`)
 
 ## Customization
 

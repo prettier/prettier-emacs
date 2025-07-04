@@ -2,7 +2,7 @@
 
 (package "prettier-js"
          "0.1.0"
-         "Minor mode to format JS code on file save")
+         "Minor mode to format code on file save")
 
 (website-url "https://github.com/prettier/prettier-emacs")
 (keywords "convenience" "wp" "edit" "js")

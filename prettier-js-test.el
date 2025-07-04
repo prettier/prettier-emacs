@@ -421,7 +421,7 @@
 
     ;; Verify that the appropriate error is signaled with the correct message
     (let ((err (should-error (prettier-js-prettify-code-block) :type 'user-error)))
-      (should (string= "Not inside a source code block" (cadr err))))))
+      (should (string= "No source code block at point" (cadr err))))))
 
 (ert-deftest prettier-js-test-prettify-code-blocks ()
   "Test that prettier-js-prettify-code-blocks formats all code blocks in an org file."

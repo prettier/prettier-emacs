@@ -1,4 +1,4 @@
-;;; prettier-js.el --- Minor mode to format JS code on file save  -*- lexical-binding: t; -*-
+;;; prettier-js.el --- Minor mode to format code on file save  -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2014 The go-mode Authors. All rights reserved.
 ;; Portions Copyright (c) 2015-present, Facebook, Inc. All rights reserved.
@@ -39,7 +39,7 @@
 ;; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.)
 
 ;;; Commentary:
-;; Formats your JavaScript code using 'prettier' on file save.
+;; Formats your code using 'prettier' on file save.
 
 ;;; Code:
 
@@ -49,7 +49,7 @@
 (declare-function org-element-type "org-element-ast")
 
 (defgroup prettier-js nil
-  "Minor mode to format JS code on file save"
+  "Minor mode to format code on file save"
   :group 'languages
   :prefix "prettier-js"
   :link '(url-link :tag "Repository" "https://github.com/prettier/prettier"))
@@ -429,15 +429,8 @@ Signal an error if not within a code block."
   (unless (derived-mode-p 'org-mode)
     (user-error "Not in org-mode"))
   (let ((element (org-element-at-point)))
-    ;; Like (org-in-src-block-p t):
-    (unless (and (eq (org-element-type element) 'src-block)
-                 (not (or (<= (line-beginning-position)
-                              (org-element-property :post-affiliated element))
-                          (>= (line-end-position)
-                              (org-with-point-at (org-element-property :end element)
-                                (skip-chars-backward " \t\n\r")
-                                (point))))))
-      (user-error "Not inside a source code block"))
+    (unless (eq (org-element-type element) 'src-block)
+      (user-error "No source code block at point"))
     (prettier-js--format-code-block element)))
 
 (defun prettier-js--format-code-block (element)
