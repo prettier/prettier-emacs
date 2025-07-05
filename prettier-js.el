@@ -246,7 +246,7 @@ Signals an error if the executable cannot be found."
           (setq prettier-js-error-state nil)
           prettier-js-command)
       (setq prettier-js-error-state "Prettier executable not found")
-      (user-error "Could not find prettier executable"))))
+      (user-error "Could not find prettier executable; is it installed and on Emacs' exec-path?"))))
 
 (defun prettier-js--get-diff-command ()
   "Get the diff command to use.
@@ -257,7 +257,7 @@ Signals an error if the executable cannot be found."
         (setq prettier-js-error-state nil)
         prettier-js-diff-command)
     (setq prettier-js-error-state "Diff executable not found")
-    (user-error "Could not find diff executable")))
+    (user-error "Could not find diff executable; is it installed and on Emacs' exec-path?")))
 
 (defvar prettier-js-file-path nil
   "Override file path for prettier.

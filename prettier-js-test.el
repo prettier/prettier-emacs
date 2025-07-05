@@ -167,7 +167,7 @@
           (with-current-buffer (find-file-noselect temp-file)
             ;; Verify that the appropriate error is signaled with the correct message
             (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
-              (should (string= "Could not find prettier executable" (cadr err))))
+              (should (string-match-p "Could not find prettier executable" (cadr err))))
             (kill-buffer)))
 
       ;; Clean up temp file
@@ -211,7 +211,7 @@
           (with-current-buffer (find-file-noselect temp-file)
             ;; Verify that the appropriate error is signaled with the correct message
             (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
-              (should (string= "Could not find diff executable" (cadr err))))
+              (should (string-match-p "Could not find diff executable" (cadr err))))
             (kill-buffer)))
 
       ;; Clean up temp file
