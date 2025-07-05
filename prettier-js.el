@@ -152,8 +152,19 @@ When non-nil, contains the error message to display.")
              (t
               (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
 
-(defun prettier-js--process-errors (filename errorfile errbuf)
-  "Process errors for FILENAME, using ERRORFILE, displaying the output in ERRBUF."
+(defconst prettier-js--error-explanations
+  '(("env: node: No such file or directory" . "Could not find node executable; is it on Emacs' exec-path?"))
+  "Alist mapping error patterns to user-friendly error messages.")
+
+(defun prettier-js--get-error-explanation (error-content)
+  "Check ERROR-CONTENT for known error patterns and return explanation if found."
+  (cl-some (lambda (explanation)
+             (when (string-match-p (car explanation) error-content)
+               (cdr explanation)))
+           prettier-js--error-explanations))
+
+(defun prettier-js--show-error-buffer (filename errorfile errbuf)
+  "Show error buffer for FILENAME using ERRORFILE content in ERRBUF."
   (with-current-buffer errbuf
     (if (eq prettier-js-show-errors 'echo)
         (progn
@@ -167,6 +178,18 @@ When non-nil, contains the error message to display.")
         (replace-match (file-name-nondirectory filename)))
       (compilation-mode)
       (display-buffer errbuf))))
+
+(defun prettier-js--process-errors (filename errorfile errbuf)
+  "Process errors for FILENAME, using ERRORFILE, displaying the output in ERRBUF."
+  (let* ((error-content (with-temp-buffer
+                          (insert-file-contents errorfile)
+                          (buffer-string)))
+         (explanation (prettier-js--get-error-explanation error-content)))
+    (if explanation
+        (user-error explanation)
+      (message "Could not apply prettier")
+      (when errbuf
+        (prettier-js--show-error-buffer filename errorfile errbuf)))))
 
 (defun prettier-js--kill-error-buffer (errbuf)
   "Kill buffer ERRBUF."
@@ -312,9 +335,7 @@ PATCHBUF is the buffer where the diff output will be written."
                        (if errbuf (prettier-js--kill-error-buffer errbuf)))
                    (setq prettier-js-error-state "Diff command had an issue")
                    (user-error "Error calling diff; is GNU diff on your path?")))
-             (message "Could not apply prettier")
-             (when errbuf
-               (prettier-js--process-errors file-path program-errorfile errbuf))))
+             (prettier-js--process-errors file-path program-errorfile errbuf)))
        (kill-buffer patchbuf)
        (delete-file errorfile)
        (delete-file bufferfile)
