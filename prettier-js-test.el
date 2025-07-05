@@ -246,6 +246,40 @@
       (when (file-exists-p temp-file)
         (delete-file temp-file)))))
 
+(ert-deftest prettier-js-test-node-not-found-error ()
+  "Test that prettier-js handles 'env: node: No such file or directory' error correctly."
+  (let* ((dirty-file (expand-file-name "fixtures/dirty.js"))
+         (temp-file (make-temp-file "prettier-test-" nil ".js"))
+         (orig-call-process (symbol-function 'call-process)))
+    (unwind-protect
+        (progn
+          ;; Copy dirty content to temp file
+          (copy-file dirty-file temp-file t)
+
+          ;; Mock call-process to simulate the node not found error
+          (cl-letf (((symbol-function 'call-process)
+                     (lambda (program &rest args)
+                       (if (string= program prettier-js-command)
+                           (progn
+                             ;; Write the error message to the error file
+                             (let ((error-file (nth 1 args)))
+                               (when (and (listp error-file) (eq (caar error-file) :file))
+                                 (with-temp-file (cadr error-file)
+                                   (insert "env: node: No such file or directory"))))
+                             1) ; Return error code
+                         (apply orig-call-process program args)))))
+
+            ;; Visit the temp file
+            (with-current-buffer (find-file-noselect temp-file)
+              ;; Verify that the appropriate error is signaled with the correct message
+              (let ((err (should-error (prettier-js-prettify) :type 'user-error)))
+                (should (string-match-p "Could not find node executable" (cadr err))))
+              (kill-buffer))))
+
+      ;; Clean up temp file
+      (when (file-exists-p temp-file)
+        (delete-file temp-file)))))
+
 (ert-deftest prettier-js-test-error-display ()
   "Test that errors from prettier are displayed in the error buffer."
   (let* ((syntax-error-file (expand-file-name "fixtures/syntax-error.js"))
