@@ -51,6 +51,19 @@ This package uses the `diff` program under the hood to reliably identify formatt
      (Use the appropriate command name for your system, which might be `gdiff`, `gnudiff`, or `gd`)
 </details>
 
+#### Ensure Emacs' path is configured correctly
+
+Depending on how the programs are installed, `node`, `prettier`, and/or `diff` may be missing on Emacs' `exec-path`.  When attempting to format a buffer, this could result in errors such as:
+
+- "Node executable not found"
+- "Could not find prettier executable"
+
+An easy solution to this issue is to install and use [`exec-path-from-shell`](https://github.com/purcell/exec-path-from-shell).  Add to your init file:
+
+```elisp
+(exec-path-from-shell-initialize)
+```
+
 ### Basic configuration
 
 First require the package:
