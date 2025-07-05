@@ -114,14 +114,13 @@ Alternatively, say that you want to use Prettier everywhere by default, except f
 
 ### Prettier arguments
 
-To adjust the CLI args used for the `prettier` command, you can customize the `prettier-js-args` variable:
+To adjust the [CLI args](https://prettier.io/docs/cli) used for the `prettier` command, you can customize the `prettier-js-args` variable. This may be useful for controlling specific program behaviors; for instance:
 
 ```elisp
-(setq prettier-js-args '(
-  "--trailing-comma" "all"
-  "--bracket-spacing" "false"
-))
+(setq prettier-js-args '("--no-editorconfig"))
 ```
+
+While it's possible to control formatting options with flags like `--single-quote`, it's usually better to use a [configuration file](https://prettier.io/docs/configuration).
 
 ### Usage with web-mode
 
