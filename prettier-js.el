@@ -153,7 +153,7 @@ When non-nil, contains the error message to display.")
               (error "Invalid rcs patch or internal error in prettier-js--apply-rcs-patch")))))))))
 
 (defconst prettier-js--error-explanations
-  '(("env: node: No such file or directory" . "Could not find node executable; is it on Emacs' exec-path?"))
+  '(("env: node: No such file or directory" . ("Node executable not found" "Could not find node executable; is it on Emacs' exec-path?")))
   "Alist mapping error patterns to user-friendly error messages.")
 
 (defun prettier-js--get-error-explanation (error-content)
@@ -186,7 +186,9 @@ When non-nil, contains the error message to display.")
                           (buffer-string)))
          (explanation (prettier-js--get-error-explanation error-content)))
     (if explanation
-        (user-error explanation)
+        (progn
+          (setq prettier-js-error-state (car explanation))
+          (user-error (cadr explanation)))
       (message "Could not apply prettier")
       (when errbuf
         (prettier-js--show-error-buffer filename errorfile errbuf)))))
