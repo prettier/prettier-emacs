@@ -46,7 +46,9 @@
 (eval-when-compile
   (require 'org-element))
 
-(declare-function org-element-type "org-element-ast")
+(declare-function org-element-type "org-element-ast" (node &optional anonymous))
+(declare-function org-element-property "org-element-ast" (property node &optional dflt force-undefer))
+
 
 (defgroup prettier-js nil
   "Minor mode to format code on file save"
